@@ -1,0 +1,98 @@
+MemoryUsageHumanized {
+    background: $boost;
+    padding: 2;
+    width: 15;
+    text-align: right;
+}
+
+CGroupName {
+    background: $boost;
+    padding: 2;
+    width: 25;
+}
+
+MemoryPercent {
+    background: $boost;
+    padding: 2;
+    width: 11;
+    text-align: right;
+}
+
+CGroupCPUPercentUsage {
+    background: $boost;
+    padding: 2;
+    width: 12;
+    text-align: right;
+}
+
+CGroupCPUQuota {
+    background: $boost;
+    padding: 2;
+    width: 12;
+    text-align: right;
+}
+
+CGroupThrottled {
+    background: $boost;
+    padding: 2;
+    width: 12;
+}
+
+#line-spacer {
+    width: 1fr;
+    padding: 2;
+    background: $boost;
+}
+
+CGroupLine {
+    background: $boost;
+}
+
+
+
+CGHeaderbar {
+    dock: top;
+    height: 3;
+    background: $panel;
+}
+
+CGHeaderbar > Label {
+    background: $panel;
+    padding: 1 2;
+    text-style: bold;
+}
+
+#header-cgroup-name {
+    width: 25;
+}
+
+#header-mem-usage {
+    width: 15;
+    text-align: right;
+}
+
+#header-mem-limit {
+    width: 15;
+    text-align: right;
+}
+
+#header-mem-percent {
+    width: 11;
+    text-align: right;
+}
+
+#header-cpu-percent {
+    width: 12;
+    text-align: right;
+}
+
+#header-cpu-quota {
+    width: 13;
+    text-align: right;
+}
+
+#header-cpu-throttled {
+    width: 13;
+    text-align: right;
+}
+
