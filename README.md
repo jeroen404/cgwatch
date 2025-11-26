@@ -1,5 +1,12 @@
 
-# Install daemon
+
+
+# Daemon
+## Notification Popup
+![Notification Popup](doc/popup.png)
+
+## Install daemon
+
 
 if manual
 ```shell
@@ -16,8 +23,10 @@ systemctl --user start cgwatcherd.service
 systemctl --user status cgwatcherd
 journalctl --user -u cgwatcherd -f
 ```
-
-# Run cli
+# CLI
+## CLI Interface
+![CLI Interface](doc/cli.png)
+## Run cli
 
 ```shell
 cgwatcher
@@ -25,4 +34,8 @@ cgwatcher
 # Build
 ```shell
 debuild -us -uc -b
+
+# test
+
+systemctl --user set-property --runtime app-slack@f22b6db44f2a4ade8b990458fac649e6.service MemoryMax=1100M
 ```
