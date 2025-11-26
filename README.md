@@ -1,5 +1,13 @@
 
+# Tame the desktop
 
+put all browsers in a pen
+
+## set cgroup limits
+```shell
+cp -r examples/* ~/.config/systemd/user/
+systemctl --user daemon-reload
+```
 
 # Daemon
 ## Notification Popup
