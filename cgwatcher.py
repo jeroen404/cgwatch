@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 
+import cgwatch
 from cgwatch.cgroup import CGroupTree, CGroup
 import humanize
 import os
