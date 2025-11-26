@@ -1,0 +1,16 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@ --with python3 --buildsystem=pybuild
+
+override_dh_auto_install:
+	dh_auto_install
+	# Install scripts to /usr/bin without .py extension
+	mkdir -p debian/cgwatch/usr/bin
+	cp cgwatcher.py debian/cgwatch/usr/bin/cgwatcher
+	cp cgwatcherd.py debian/cgwatch/usr/bin/cgwatcherd
+	chmod +x debian/cgwatch/usr/bin/cgwatcher
+	chmod +x debian/cgwatch/usr/bin/cgwatcherd
+
+override_dh_installsystemduser:
+	dh_installsystemduser --name=cgwatcherd --no-enable

@@ -1,0 +1,14 @@
+# ~/.config/systemd/user/cgwatcherd.service
+
+[Unit]
+Description=CGroup Memory Watcher Daemon
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/cgwatcherd
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

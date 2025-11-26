@@ -1,0 +1,15 @@
+Source: cgwatch
+Section: utils
+Priority: optional
+Maintainer: Jeroen <jeroen@404.eu>
+Build-Depends: debhelper-compat (= 13), python3, dh-python
+Standards-Version: 4.6.2
+Homepage: https://github.com/jack/cgwatch
+
+Package: cgwatch
+Architecture: all
+Depends: ${python3:Depends}, ${misc:Depends}, python3-textual, python3-humanize, libnotify-bin
+Description: CGroup Memory Watcher and TUI
+ A tool to monitor cgroup memory usage and CPU quotas.
+ Includes a daemon (cgwatcherd) for desktop notifications on high memory usage
+ and a TUI application (cgwatcher) for real-time monitoring.
