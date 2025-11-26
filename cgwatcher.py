@@ -1,5 +1,5 @@
-
 #!/usr/bin/env python3
+
 
 from cgwatch.cgroup import CGroupTree, CGroup
 import humanize
@@ -168,7 +168,7 @@ class CGHeaderbar(HorizontalGroup):
 class CGroupWatcherApp(App):
     BINDINGS = [("d", "toggle_dark", "Toggle dark mode"),
                 ("q", "quit", "Quit the app")]
-    CSS_PATH = "cgwatcher.tcss"
+    CSS_PATH = os.path.join(os.path.dirname(cgwatch.__file__), "style.tcss")
     limited_cgroups = reactive([],init=False)  # Don't call watcher on init
     def __init__(self):
         super().__init__()
