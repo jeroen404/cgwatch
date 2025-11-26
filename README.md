@@ -1,19 +1,23 @@
 
-*** Install daemon
+# Install daemon
 
+if manual
+copy to ~/.config/systemd/user/cgwatcherd.service
 systemctl --user daemon-reload
+
+
 systemctl --user enable cgwatcherd.service
 systemctl --user start cgwatcherd.service
 
-** see status
+## see status
 
 systemctl --user status cgwatcherd
 journalctl --user -u cgwatcherd -f
 
-*** Run cli
+# Run cli
 
 cgwatcher
 
-*** Build
+# Build
 
 debuild -us -uc -b
