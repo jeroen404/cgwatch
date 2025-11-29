@@ -1,1 +1,3 @@
 cgwatcherd.service usr/lib/systemd/user/
+LICENSE usr/share/doc/cgwatch/
+README.md usr/share/doc/cgwatch/
