@@ -1,30 +1,42 @@
 
 # Tame the desktop
 
-put all browsers in a pen
+Put all browsers in a pen!
+
+Stop one application from using all memory and slowing down the entire computer/desktop and possibly killing random processes.
 
 ## set cgroup limits
+
 ```shell
 cp -r examples/* ~/.config/systemd/user/
 systemctl --user daemon-reload
 ```
+Adjust the override files or make your own.
 
 # Daemon
 ## Notification Popup
+
+Gives a warning when apps are using too much memory.
+
 ![Notification Popup](doc/popup.png)
 
 ## Install daemon
 
-
-if manual
+If manually installing
 ```shell
 copy to ~/.config/systemd/user/cgwatcherd.service
 systemctl --user daemon-reload
 ```
+
+Enable it
 ```shell
 systemctl --user enable cgwatcherd.service
 systemctl --user start cgwatcherd.service
 ```
+
+## Config
+
+~/.config/cgwatch/cgwatcherd.ini
 
 ## see status
 ```shell
@@ -45,5 +57,7 @@ debuild -us -uc -b
 
 # test
 
+```shell
+systemd-cgls
 systemctl --user set-property --runtime app-slack@f22b6db44f2a4ade8b990458fac649e6.service MemoryMax=1100M
 ```
