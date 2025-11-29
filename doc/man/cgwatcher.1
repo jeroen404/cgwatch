@@ -1,0 +1,18 @@
+.TH CGWATCHER 1 "November 2025" "0.1.0" "User Commands"
+.SH NAME
+cgwatcher \- TUI tool to monitor cgroup memory usage
+.SH SYNOPSIS
+.B cgwatcher
+[\-\-interval \fISECONDS\fR]
+.SH DESCRIPTION
+.B cgwatcher
+is a terminal user interface (TUI) that displays real-time memory usage, limits, and CPU quotas for cgroups in the user slice.
+.SH OPTIONS
+.TP
+.BR \-\-interval " " \fISECONDS\fR
+Refresh interval in seconds (default: 1.0).
+.TP
+.BR \-\-app-scan-interval " " \fISECONDS\fR
+Interval to rescan cgroup list in seconds (default: 2.0).
+.SH SEE ALSO
+.BR cgwatcherd (8)

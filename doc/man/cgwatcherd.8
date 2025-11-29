@@ -1,0 +1,12 @@
+.TH CGWATCHERD 8 "November 2025" "0.1.0" "System Administration"
+.SH NAME
+cgwatcherd \- Daemon to monitor cgroup memory usage and notify users
+.SH SYNOPSIS
+.B cgwatcherd
+.SH DESCRIPTION
+.B cgwatcherd
+runs in the background and monitors cgroups. It sends desktop notifications when a cgroup exceeds configured memory usage thresholds.
+.SH CONFIGURATION
+Configuration is stored in \fI~/.config/cgwatch/cgwatcherd.ini\fR.
+.SH SEE ALSO
+.BR cgwatcher (1)

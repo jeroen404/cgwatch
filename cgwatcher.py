@@ -5,6 +5,7 @@ import cgwatch
 from cgwatch.cgroup import CGroupTree, CGroup
 import humanize
 import os
+import argparse
 
 from textual.app import App, ComposeResult
 from textual.containers import HorizontalGroup, VerticalScroll
@@ -172,9 +173,11 @@ class CGroupWatcherApp(App):
                 ("q", "quit", "Quit the app")]
     CSS_PATH = os.path.join(os.path.dirname(cgwatch.__file__), "cgwatcher.tcss")
     limited_cgroups = reactive([],init=False)  # Don't call watcher on init
-    def __init__(self):
+    def __init__(self, config: dict):
         super().__init__()
         self.user_tree = CGroupTree("user.slice")
+        self.refresh_interval = config.get('refresh_interval', 1.0)
+        self.app_scan_interval = config.get('app_scan_interval', 2.0)
         
     def action_toggle_dark(self) -> None:
         """An action to toggle dark mode."""
@@ -187,8 +190,8 @@ class CGroupWatcherApp(App):
 
     def on_mount(self) -> None:
         """Set up periodic updates."""
-        self.set_interval(1.0, self.refresh_cgroups)  # Update every second
-        self.set_interval(2.0, self.refresh_cgroup_list)  # Update cgroup list
+        self.set_interval(self.refresh_interval, self.refresh_cgroups)  # Update every second
+        self.set_interval(self.app_scan_interval, self.refresh_cgroup_list)  # Update cgroup list
         self.limited_cgroups = self.user_tree.get_memory_limited_cgroups()
     def refresh_cgroups(self) -> None:
         """Refresh all cgroup data."""
@@ -221,5 +224,14 @@ class CGroupWatcherApp(App):
 
 
 if __name__ == "__main__":
-    app = CGroupWatcherApp()
+    parser = argparse.ArgumentParser(description="CGroup Watcher Application")
+    parser.add_argument("--interval", type=float, default=1.0, help="Refresh interval in seconds. Minimum is 0.1 seconds.")
+    parser.add_argument("--app-scan-interval", type=float, default=2.0, help="Interval to rescan cgroup list in seconds.")
+    args = parser.parse_args()
+    refresh_interval = max(0.1, args.interval)
+    app_scan_interval = max(0.1, args.app_scan_interval)
+    config = {}
+    config['refresh_interval'] = refresh_interval
+    config['app_scan_interval'] = app_scan_interval
+    app = CGroupWatcherApp(config=config)
     app.run()
