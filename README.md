@@ -3,7 +3,8 @@
 
 Put all browsers in a pen!
 
-Stop one application from using all memory and slowing down the entire computer/desktop and possibly killing random processes.
+Stop one application from using all memory and slowing down the entire computer/desktop and possibly killing random processes. 
+Uses Linux CGroups. ( https://en.wikipedia.org/wiki/Cgroups )
 
 ## set cgroup limits
 
@@ -23,8 +24,9 @@ Gives a warning when apps are using too much memory.
 ## Install daemon
 
 If manually installing
+
+Edit cgwatcherd.service for right path and copy to ~/.config/systemd/user/cgwatcherd.service
 ```shell
-copy to ~/.config/systemd/user/cgwatcherd.service
 systemctl --user daemon-reload
 ```
 
