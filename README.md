@@ -6,6 +6,21 @@ Put all browsers in a pen!
 Stop one application from using all memory and slowing down the entire computer/desktop and possibly killing random processes.
 Uses Linux CGroups. ( https://en.wikipedia.org/wiki/Cgroups )
 
+## Compatibility / Requirements
+
+This project only works when applications are launched as user systemd
+services/scopes (so they can be discovered and controlled with
+`systemctl --user`).
+
+| Environment | Support Level | Note |
+|---|---|---|
+| KDE Plasma | Native | Works out of the box. Apps are launched as individual units in modern Plasma systemd startup. |
+| GNOME | Partial | Works for Flatpaks or apps launched via `systemd-run --user`. Many standard app launches are not tracked as discrete units. |
+| Others (XFCE, i3, etc.) | Manual | Usually requires launching apps via `systemd-run --user` for cgwatch to see them as separate units/scopes. |
+
+The TUI also needs a recent `textual` version. It works with Debian 13's
+package, but not with the older Debian 12 package.
+
 # Daemon
 ## Notification Popup
 
