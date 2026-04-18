@@ -48,6 +48,76 @@ CGroupLine {
     background: $boost;
 }
 
+CGroupLine:focus {
+    background: $accent 25%;
+    text-style: bold;
+}
+
+/* --- Modals --------------------------------------------------------- */
+
+EditLimitsModal, AddServiceModal, ConfirmModal {
+    align: center middle;
+}
+
+#edit-box, #add-box, #confirm-box {
+    background: $surface;
+    border: thick $accent;
+    padding: 1 2;
+    width: 70;
+    height: auto;
+    max-height: 90%;
+}
+
+#add-box {
+    width: 80;
+}
+
+#edit-title, #add-title, #confirm-question {
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+.edit-sub {
+    color: $text-muted;
+    padding-bottom: 1;
+}
+
+.edit-row {
+    height: 3;
+    margin-bottom: 1;
+}
+
+.edit-label {
+    width: 12;
+    padding: 1 1 0 0;
+}
+
+.edit-row Input {
+    width: 1fr;
+}
+
+#add-list {
+    height: 10;
+    margin-bottom: 1;
+    border: round $panel;
+}
+
+.error {
+    color: $error;
+    min-height: 1;
+    margin-top: 1;
+}
+
+#edit-buttons, #add-buttons, #confirm-buttons {
+    align: right middle;
+    height: auto;
+    margin-top: 1;
+}
+
+#edit-buttons Button, #add-buttons Button, #confirm-buttons Button {
+    margin-left: 1;
+}
+
 
 
 CGHeaderbar {
