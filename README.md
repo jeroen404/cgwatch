@@ -3,16 +3,8 @@
 
 Put all browsers in a pen!
 
-Stop one application from using all memory and slowing down the entire computer/desktop and possibly killing random processes. 
+Stop one application from using all memory and slowing down the entire computer/desktop and possibly killing random processes.
 Uses Linux CGroups. ( https://en.wikipedia.org/wiki/Cgroups )
-
-## set cgroup limits
-
-```shell
-cp -r examples/* ~/.config/systemd/user/
-systemctl --user daemon-reload
-```
-Adjust the override files or make your own.
 
 # Daemon
 ## Notification Popup
@@ -45,22 +37,38 @@ systemctl --user start cgwatcherd.service
 systemctl --user status cgwatcherd
 journalctl --user -u cgwatcherd -f
 ```
+
 # CLI
 ## CLI Interface
 ![CLI Interface](doc/cli.png)
+
 ## Run cli
 
 ```shell
 cgwatcher
 ```
+
+## Setting limits
+
+Use the interactive TUI to add and manage memory/CPU limits for desktop services.
+
+| Key | Action |
+|-----|--------|
+| `↑` / `↓` | Navigate between services |
+| `enter` | Edit limits for the focused service |
+| `+` / `-` | Increase or decrease MemoryMax by 10% |
+| `a` | Add a limit to a new service |
+| `delete` | Remove the cgwatch limit from the focused service |
+| `n` | Toggle between service description and short name |
+| `q` | Quit |
+
+Limits are stored as drop-in files at
+`~/.config/systemd/user/<service>.d/zz-cgwatch.conf` and take effect
+immediately on the running instance via `systemctl --user set-property`.
+The `zz-` prefix ensures they override any other drop-ins in the same
+directory without touching those files.
+
 # Build
 ```shell
 debuild -us -uc -b
-```
-
-# test
-
-```shell
-systemd-cgls
-systemctl --user set-property --runtime app-slack@f22b6db44f2a4ade8b990458fac649e6.service MemoryMax=1100M
 ```

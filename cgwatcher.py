@@ -131,18 +131,43 @@ class CGroupThrottled(Label):
         self.throttled = new_throttled
 
 class CGroupName(Label):
+    # Leaves room for the column's horizontal padding (2 each side).
+    DESC_MAX = 56
+
     def __init__(self, cgroup: CGroup, **kwargs):
-        name = cgroup.get_short_name()
-        super().__init__(name, **kwargs)
-        name = name.replace("\\x2d", "-")
-        super().__init__(name, **kwargs)
+        super().__init__("", **kwargs)
+        self.cgroup = cgroup
+        self._description: str | None = None
+
+    def on_mount(self) -> None:
+        self.update_name(getattr(self.app, "show_descriptions", False))
+
+    def _get_description(self) -> str:
+        if self._description is None:
+            self._description = svc.get_description(self.cgroup.name)
+        return self._description
+
+    def update_name(self, descriptions: bool) -> None:
+        if descriptions:
+            desc = self._get_description()
+            if not desc:
+                # Fall back to the short name if systemctl had no answer.
+                self.update(self.cgroup.get_short_name())
+                return
+            if len(desc) > self.DESC_MAX:
+                desc = desc[: self.DESC_MAX - 1] + "…"
+            self.update(desc)
+        else:
+            self.update(self.cgroup.get_short_name())
 
 class CGroupLine(HorizontalGroup):
     can_focus = True
     BINDINGS = [
-        Binding("enter", "edit", "Edit"),
-        Binding("plus,+,equals_sign", "bump_mem_up", "Mem +10%"),
-        Binding("minus,-", "bump_mem_down", "Mem -10%"),
+        Binding("enter", "edit", "Edit", key_display="enter"),
+        Binding("plus", "bump_mem_up", "Mem +10%"),
+        Binding("equals_sign", "bump_mem_up", show=False),
+        Binding("minus", "bump_mem_down", "Mem -10%"),
+        Binding("a", "add_service", "Add service"),
         Binding("delete", "unlimit", "Unlimit"),
     ]
 
@@ -495,26 +520,33 @@ class CGHeaderbar(HorizontalGroup):
 
 class CGroupWatcherApp(App):
     BINDINGS = [
-        Binding("d", "toggle_dark", "Toggle dark mode"),
+        Binding("a", "add_service", show=False),  # fallback when no line focused
+        Binding("n", "toggle_names", "Description"),
         Binding("q", "quit", "Quit"),
-        Binding("a", "add_service", "Add service"),
         Binding("up", "focus_prev_line", show=False),
         Binding("down", "focus_next_line", show=False),
     ]
     CSS_PATH = os.path.join(os.path.dirname(cgwatch.__file__), "cgwatcher.tcss")
     limited_cgroups = reactive([],init=False)  # Don't call watcher on init
+    show_descriptions = reactive(True)
     def __init__(self, config: dict):
         super().__init__()
         self.user_tree = CGroupTree("user.slice")
         self.refresh_interval = config.get('refresh_interval', 1.0)
         self.app_scan_interval = config.get('app_scan_interval', 2.0)
 
-    def action_toggle_dark(self) -> None:
-        """An action to toggle dark mode."""
-        self.theme = ("textual-dark" if self.theme == "textual-light" else "textual-light")
-
     def action_add_service(self) -> None:
         self.push_screen(AddServiceModal(self._limited_templates()), self._after_edit)
+
+    def action_toggle_names(self) -> None:
+        self.show_descriptions = not self.show_descriptions
+
+    def watch_show_descriptions(self, old_value: bool, new_value: bool) -> None:
+        if not self.is_mounted:
+            return
+        self.set_class(new_value, "descriptions")
+        for w in self.query(CGroupName):
+            w.update_name(new_value)
 
     def _limited_templates(self) -> set[str]:
         """Templates of services currently memory- or CPU-limited."""
@@ -554,6 +586,7 @@ class CGroupWatcherApp(App):
 
     def on_mount(self) -> None:
         """Set up periodic updates."""
+        self.set_class(self.show_descriptions, "descriptions")
         self.set_interval(self.refresh_interval, self.refresh_cgroups)  # Update every second
         self.set_interval(self.app_scan_interval, self.refresh_cgroup_list)  # Update cgroup list
         self.limited_cgroups = self.user_tree.get_memory_limited_cgroups()

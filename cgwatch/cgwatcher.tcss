@@ -11,6 +11,10 @@ CGroupName {
     width: 25;
 }
 
+.descriptions CGroupName {
+    width: 60;
+}
+
 MemoryPercent {
     background: $boost;
     padding: 2;
@@ -134,6 +138,10 @@ CGHeaderbar > Label {
 
 #header-cgroup-name {
     width: 25;
+}
+
+.descriptions #header-cgroup-name {
+    width: 60;
 }
 
 #header-mem-usage {

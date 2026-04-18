@@ -193,6 +193,61 @@ def find_running_instance(template_or_instance: str) -> str | None:
     return None
 
 
+def _unit_file_search_paths() -> list[Path]:
+    """Directories systemd --user searches for unit files, in priority order.
+
+    Transient units (most desktop ``app-*@<uuid>.service`` entries) live
+    in ``/run/user/<uid>/systemd/transient/`` and are keyed by the full
+    instance name — that's where ``Description=`` actually is.
+    """
+    uid = os.getuid()
+    return [
+        Path(f"/run/user/{uid}/systemd/transient"),
+        Path.home() / ".config/systemd/user",
+        Path("/etc/systemd/user"),
+        Path("/run/systemd/user"),
+        Path("/usr/lib/systemd/user"),
+        Path("/lib/systemd/user"),
+    ]
+
+
+def _find_unit_file(unit: str) -> Path | None:
+    template = cgroup_name_to_unit(unit)
+    names = [unit] if template == unit else [unit, template]
+    for base in _unit_file_search_paths():
+        for name in names:
+            p = base / name
+            if p.is_file():
+                return p
+    return None
+
+
+def get_description(unit: str) -> str:
+    """Return the systemd ``Description=`` value for a unit, or ''.
+
+    Reads the unit file directly (transient first, then the user/system
+    unit dirs). No subprocess.
+    """
+    path = _find_unit_file(unit)
+    if path is None:
+        return ""
+    try:
+        with path.open() as f:
+            in_unit_section = False
+            for line in f:
+                stripped = line.strip()
+                if not stripped or stripped.startswith(("#", ";")):
+                    continue
+                if stripped.startswith("[") and stripped.endswith("]"):
+                    in_unit_section = stripped == "[Unit]"
+                    continue
+                if in_unit_section and stripped.startswith("Description="):
+                    return stripped.split("=", 1)[1].strip()
+    except OSError:
+        pass
+    return ""
+
+
 def unit_exists(unit: str) -> bool:
     """True if systemd knows this unit (template or instance)."""
     cp = subprocess.run(
