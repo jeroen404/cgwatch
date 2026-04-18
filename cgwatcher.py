@@ -164,11 +164,15 @@ class CGroupLine(HorizontalGroup):
     can_focus = True
     BINDINGS = [
         Binding("enter", "edit", "Edit", key_display="enter"),
+        Binding("a", "add_service", "Add service"),
         Binding("plus", "bump_mem_up", "Mem +10%"),
         Binding("equals_sign", "bump_mem_up", show=False),
         Binding("minus", "bump_mem_down", "Mem -10%"),
-        Binding("a", "add_service", "Add service"),
         Binding("delete", "unlimit", "Unlimit"),
+        Binding("n", "toggle_names", "Description"),
+        Binding("up", "focus_prev_line", "Navigate", key_display="↑↓"),
+        Binding("down", "focus_next_line", show=False),
+        Binding("q", "quit", "Quit"),
     ]
 
     def __init__(self, cgroup: CGroup):
@@ -520,20 +524,24 @@ class CGHeaderbar(HorizontalGroup):
 
 class CGroupWatcherApp(App):
     BINDINGS = [
-        Binding("a", "add_service", show=False),  # fallback when no line focused
+        Binding("a", "add_service", "Add service"),  # fallback when no line focused
         Binding("n", "toggle_names", "Description"),
-        Binding("q", "quit", "Quit"),
-        Binding("up", "focus_prev_line", show=False),
+        Binding("up", "focus_prev_line", "Navigate", key_display="↑↓"),
         Binding("down", "focus_next_line", show=False),
+        Binding("q", "quit", "Quit"),
     ]
     CSS_PATH = os.path.join(os.path.dirname(cgwatch.__file__), "cgwatcher.tcss")
     limited_cgroups = reactive([],init=False)  # Don't call watcher on init
     show_descriptions = reactive(True)
+    HIGHLIGHT_TIMEOUT = 3.0  # seconds before focus highlight auto-dismisses
+
     def __init__(self, config: dict):
         super().__init__()
         self.user_tree = CGroupTree("user.slice")
         self.refresh_interval = config.get('refresh_interval', 1.0)
         self.app_scan_interval = config.get('app_scan_interval', 2.0)
+        self._highlight_timer = None
+        self._last_focused_index = -1
 
     def action_add_service(self) -> None:
         self.push_screen(AddServiceModal(self._limited_templates()), self._after_edit)
@@ -567,10 +575,22 @@ class CGroupWatcherApp(App):
         except ValueError:
             idx = -1
         if idx < 0:
-            lines[0].focus()
-            return
+            # Use last-known index so navigation resumes after highlight timeout
+            idx = max(0, min(len(lines) - 1, self._last_focused_index))
         new_idx = max(0, min(len(lines) - 1, idx + offset))
+        self._last_focused_index = new_idx
         lines[new_idx].focus()
+        # Reset the highlight auto-dismiss timer
+        if self._highlight_timer is not None:
+            self._highlight_timer.stop()
+        self._highlight_timer = self.set_timer(
+            self.HIGHLIGHT_TIMEOUT, self._dismiss_highlight
+        )
+
+    def _dismiss_highlight(self) -> None:
+        """Remove focus highlight from the current CGroupLine."""
+        if isinstance(self.focused, CGroupLine):
+            self.screen.set_focus(None)
 
     def action_focus_next_line(self) -> None:
         self._focus_line_at(1)
