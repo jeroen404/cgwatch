@@ -557,13 +557,15 @@ class CGroupWatcherApp(App):
     ]
     CSS_PATH = os.path.join(os.path.dirname(cgwatch.__file__), "cgwatcher.tcss")
     limited_cgroups = reactive([],init=False)  # Don't call watcher on init
-    show_descriptions = reactive(True)
+    show_descriptions = reactive(False)
     def __init__(self, config: dict):
         super().__init__()
+        self.cgwatch_config = dict(config)
         self.user_tree = CGroupTree("user.slice")
         self.refresh_interval = config.get('refresh_interval', 1.0)
         self.app_scan_interval = config.get('app_scan_interval', 2.0)
         self.highlight_timeout = config.get('highlight_timeout', 3.0)
+        self.show_descriptions = bool(config.get('show_descriptions', False))
         self._highlight_timer = None
         self._last_focused_index = -1
         self._initial_focus_done = False
@@ -573,6 +575,14 @@ class CGroupWatcherApp(App):
 
     def action_toggle_names(self) -> None:
         self.show_descriptions = not self.show_descriptions
+
+    def action_quit(self) -> None:
+        self.cgwatch_config['show_descriptions'] = self.show_descriptions
+        try:
+            _save_config_file(self.cgwatch_config)
+        except OSError:
+            pass
+        self.exit()
 
     def watch_show_descriptions(self, old_value: bool, new_value: bool) -> None:
         if not self.is_mounted:
@@ -706,18 +716,45 @@ DEFAULTS = {
     'refresh_interval': 1.0,
     'app_scan_interval': 2.0,
     'highlight_timeout': 3.0,
+    'show_descriptions': False,
 }
+
+
+def _save_config_file(config: dict) -> None:
+    cp = configparser.ConfigParser()
+    cp['cgwatcher'] = {
+        'refresh_interval': str(config.get('refresh_interval', DEFAULTS['refresh_interval'])),
+        'app_scan_interval': str(config.get('app_scan_interval', DEFAULTS['app_scan_interval'])),
+        'highlight_timeout': str(config.get('highlight_timeout', DEFAULTS['highlight_timeout'])),
+        'show_descriptions': 'true' if config.get('show_descriptions', DEFAULTS['show_descriptions']) else 'false',
+    }
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    with CONFIG_FILE.open('w') as f:
+        cp.write(f)
+
+
+def _write_default_config_file() -> None:
+    _save_config_file(DEFAULTS)
 
 def load_config() -> dict:
     """Load TUI config from ~/.config/cgwatch/cgwatch.ini."""
     config = dict(DEFAULTS)
+    if not CONFIG_FILE.exists():
+        try:
+            _write_default_config_file()
+        except OSError:
+            return config
     if CONFIG_FILE.exists():
         cp = configparser.ConfigParser()
         cp.read(CONFIG_FILE)
         section = cp['cgwatcher'] if 'cgwatcher' in cp else {}
-        for key in DEFAULTS:
+        for key in ('refresh_interval', 'app_scan_interval', 'highlight_timeout'):
             if key in section:
                 config[key] = max(0.1, float(section[key]))
+        if 'show_descriptions' in section:
+            config['show_descriptions'] = str(section['show_descriptions']).strip().lower() in (
+                '1', 'true', 'yes', 'on'
+            )
     return config
 
 

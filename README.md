@@ -83,6 +83,18 @@ immediately on the running instance via `systemctl --user set-property`.
 The `zz-` prefix ensures they override any other drop-ins in the same
 directory without touching those files.
 
+The TUI config file is `~/.config/cgwatch/cgwatch.ini` and is created on first
+run if it does not already exist. Optional settings:
+
+```ini
+[cgwatcher]
+show_descriptions = false
+```
+
+`show_descriptions = false` starts the list with short unit names. If you
+toggle descriptions with `n`, cgwatch saves the current setting on exit and
+uses it as the next startup default.
+
 # Build
 ```shell
 debuild -us -uc -b
