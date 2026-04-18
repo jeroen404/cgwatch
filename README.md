@@ -47,6 +47,42 @@ systemctl --user start cgwatcherd.service
 
 ~/.config/cgwatch/cgwatcherd.ini
 
+This file is auto-created with defaults on first run. Example:
+
+```ini
+[Thresholds]
+warning_percent = 80
+critical_percent = 90
+reset_hysteresis = 5
+
+[Timing]
+check_interval_sec = 2
+process_list_multiplier = 5
+notification_timeout_ms = 15000
+
+[Look]
+myname = CGWatcherd
+icon = face-worried-symbolic.symbolic.png
+```
+
+`warning_percent`: send a normal warning notification when a limited app reaches this percentage of its `MemoryMax`.
+
+`critical_percent`: send a critical notification when a limited app reaches this percentage of its `MemoryMax`.
+
+`reset_hysteresis`: suppress repeat notifications until usage rises by this many additional percentage points; notification state is also reset once usage drops below `warning_percent - reset_hysteresis`.
+
+`check_interval_sec`: how often the daemon re-checks memory usage for already tracked limited apps.
+
+`process_list_multiplier`: how many check intervals to wait before rescanning the cgroup tree for the current list of limited apps. The effective rescan period is `check_interval_sec * process_list_multiplier`.
+
+`notification_timeout_ms`: how long the popup notification stays visible, in milliseconds.
+
+`myname`: application name shown in the desktop notification.
+
+`icon`: icon name or icon path passed to `notify-send` for the notification.
+
+
+
 ## see status
 ```shell
 systemctl --user status cgwatcherd
