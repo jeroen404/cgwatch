@@ -7,6 +7,8 @@ from cgwatch import service as svc
 import humanize
 import os
 import argparse
+import configparser
+from pathlib import Path
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -240,6 +242,8 @@ class CGroupLine(HorizontalGroup):
             return
         if result.messages:
             self.app.notify("; ".join(result.messages), severity="warning")
+        else:
+            self.app.notify(f"MemoryMax \u2192 {new_value}")
         self.refresh_data()
 
 def _fmt_memory_for_edit(cgroup: CGroup) -> str:
@@ -406,12 +410,13 @@ class AddServiceModal(ModalScreen[bool]):
         Binding("down", "focus_down", show=False),
     ]
 
-    def __init__(self, already_limited_templates: set[str]):
+    def __init__(self, already_limited_templates: set[str], tree: CGroupTree):
         super().__init__()
         # Templates for services that are already memory- or CPU-limited
         # at the cgroup level, regardless of which drop-in (or transient
         # property) set the limit. Used to filter the picker.
         self._already = already_limited_templates
+        self._tree = tree
 
     def compose(self) -> ComposeResult:
         running = svc.list_running_services()
@@ -419,7 +424,27 @@ class AddServiceModal(ModalScreen[bool]):
             r for r in running
             if svc.cgroup_name_to_unit(r) not in self._already
         ]
-        options = [Option(name, id=name) for name in candidates]
+        cg_by_name = {cg.name: cg for cg in self._tree.all_cgroups()}
+        # Sort by memory usage descending
+        candidates.sort(
+            key=lambda n: int(cg_by_name[n].get_current_memory_usage())
+            if n in cg_by_name else 0,
+            reverse=True,
+        )
+        MEM_COL = 10  # width for right-justified humanized memory
+        options = []
+        for name in candidates:
+            cg = cg_by_name.get(name)
+            if cg:
+                mem = humanize.naturalsize(int(cg.get_current_memory_usage()))
+            else:
+                mem = ""
+            display = name
+            at = name.find("@")
+            if at != -1 and name.endswith(".service"):
+                display = name[:at + 1] + "….service"
+            label = f"{mem:>{MEM_COL}}  {display}"
+            options.append(Option(label, id=name))
         with Vertical(id="add-box"):
             yield Static("Add service", id="add-title")
             yield Static("Pick a running service (or type one below):",
@@ -533,18 +558,18 @@ class CGroupWatcherApp(App):
     CSS_PATH = os.path.join(os.path.dirname(cgwatch.__file__), "cgwatcher.tcss")
     limited_cgroups = reactive([],init=False)  # Don't call watcher on init
     show_descriptions = reactive(True)
-    HIGHLIGHT_TIMEOUT = 3.0  # seconds before focus highlight auto-dismisses
-
     def __init__(self, config: dict):
         super().__init__()
         self.user_tree = CGroupTree("user.slice")
         self.refresh_interval = config.get('refresh_interval', 1.0)
         self.app_scan_interval = config.get('app_scan_interval', 2.0)
+        self.highlight_timeout = config.get('highlight_timeout', 3.0)
         self._highlight_timer = None
         self._last_focused_index = -1
+        self._initial_focus_done = False
 
     def action_add_service(self) -> None:
-        self.push_screen(AddServiceModal(self._limited_templates()), self._after_edit)
+        self.push_screen(AddServiceModal(self._limited_templates(), self.user_tree), self._after_edit)
 
     def action_toggle_names(self) -> None:
         self.show_descriptions = not self.show_descriptions
@@ -584,7 +609,7 @@ class CGroupWatcherApp(App):
         if self._highlight_timer is not None:
             self._highlight_timer.stop()
         self._highlight_timer = self.set_timer(
-            self.HIGHLIGHT_TIMEOUT, self._dismiss_highlight
+            self.highlight_timeout, self._dismiss_highlight
         )
 
     def _dismiss_highlight(self) -> None:
@@ -609,7 +634,7 @@ class CGroupWatcherApp(App):
         self.set_class(self.show_descriptions, "descriptions")
         self.set_interval(self.refresh_interval, self.refresh_cgroups)  # Update every second
         self.set_interval(self.app_scan_interval, self.refresh_cgroup_list)  # Update cgroup list
-        self.limited_cgroups = self.user_tree.get_memory_limited_cgroups()
+        self.refresh_cgroup_list()
     def refresh_cgroups(self) -> None:
         """Refresh all cgroup data."""
         for line in self.query(CGroupLine):
@@ -621,7 +646,9 @@ class CGroupWatcherApp(App):
     def refresh_cgroup_list(self):
         """Refresh the list of limited cgroups from the cgroup tree."""
         self.user_tree.update_tree()
-        self.limited_cgroups = self.user_tree.get_memory_limited_cgroups()
+        cgroups = self.user_tree.get_memory_limited_cgroups()
+        cgroups.sort(key=lambda cg: cg.get_percent_memory_usage(), reverse=True)
+        self.limited_cgroups = cgroups
 
     def _modal_open(self) -> bool:
         return isinstance(self.screen, ModalScreen)
@@ -637,18 +664,15 @@ class CGroupWatcherApp(App):
         if container is None:
             return
         existing_lines = list(self.query(CGroupLine))
-        existing_cgroups = [line.cgroup for line in existing_lines]
-        had_focus = any(line.has_focus for line in existing_lines)
-        # Remove lines for cgroups no longer limited
+        # Remove all existing lines
         for line in existing_lines:
-            if line.cgroup not in self.limited_cgroups:
-                line.remove()
-        # Add lines for new limited cgroups
+            line.remove()
+        # Mount fresh lines in sorted order
         for cgroup in self.limited_cgroups:
-            if cgroup not in existing_cgroups:
-                container.mount(CGroupLine(cgroup))
+            container.mount(CGroupLine(cgroup))
         # Ensure something focusable gets focus on first paint.
-        if not had_focus:
+        if not self._initial_focus_done:
+            self._initial_focus_done = True
             self.call_after_refresh(self._focus_first_line)
 
     def _focus_first_line(self) -> None:
@@ -675,15 +699,41 @@ class CGroupWatcherApp(App):
 
 
 
-if __name__ == "__main__":
+CONFIG_DIR = Path.home() / ".config" / "cgwatch"
+CONFIG_FILE = CONFIG_DIR / "cgwatch.ini"
+
+DEFAULTS = {
+    'refresh_interval': 1.0,
+    'app_scan_interval': 2.0,
+    'highlight_timeout': 3.0,
+}
+
+def load_config() -> dict:
+    """Load TUI config from ~/.config/cgwatch/cgwatch.ini."""
+    config = dict(DEFAULTS)
+    if CONFIG_FILE.exists():
+        cp = configparser.ConfigParser()
+        cp.read(CONFIG_FILE)
+        section = cp['cgwatcher'] if 'cgwatcher' in cp else {}
+        for key in DEFAULTS:
+            if key in section:
+                config[key] = max(0.1, float(section[key]))
+    return config
+
+
+def main():
     parser = argparse.ArgumentParser(description="CGroup Watcher Application")
-    parser.add_argument("--interval", type=float, default=1.0, help="Refresh interval in seconds. Minimum is 0.1 seconds.")
-    parser.add_argument("--app-scan-interval", type=float, default=2.0, help="Interval to rescan cgroup list in seconds.")
+    parser.add_argument("--interval", type=float, default=None, help="Refresh interval in seconds. Minimum is 0.1 seconds.")
+    parser.add_argument("--app-scan-interval", type=float, default=None, help="Interval to rescan cgroup list in seconds.")
     args = parser.parse_args()
-    refresh_interval = max(0.1, args.interval)
-    app_scan_interval = max(0.1, args.app_scan_interval)
-    config = {}
-    config['refresh_interval'] = refresh_interval
-    config['app_scan_interval'] = app_scan_interval
+    config = load_config()
+    if args.interval is not None:
+        config['refresh_interval'] = max(0.1, args.interval)
+    if args.app_scan_interval is not None:
+        config['app_scan_interval'] = max(0.1, args.app_scan_interval)
     app = CGroupWatcherApp(config=config)
     app.run()
+
+
+if __name__ == "__main__":
+    main()

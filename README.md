@@ -54,7 +54,7 @@ Use the interactive TUI to add and manage memory/CPU limits for desktop services
 
 | Key | Action |
 |-----|--------|
-| `↑` / `↓` | Navigate between services |
+| `↑` / `↓` | Navigate between services (highlight fades after 3 s) |
 | `enter` | Edit limits for the focused service |
 | `+` / `-` | Increase or decrease MemoryMax by 10% |
 | `a` | Add a limit to a new service |
