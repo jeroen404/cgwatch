@@ -1,3 +1,11 @@
+cgwatch (0.2.2-1) UNRELEASED; urgency=medium
+
+  * Scrub leftover MemoryHigh from drop-ins on rewrite; clear runtime
+    MemoryHigh on unlimit. MemoryHigh support was removed long ago but
+    stale entries survived because write_dropin merges existing keys.
+
+ -- Jeroen <jeroen@404.eu>  Tue, 09 Jun 2026 12:00:00 +0200
+
 cgwatch (0.2.1-1) UNRELEASED; urgency=medium
 
   * New release

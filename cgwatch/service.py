@@ -131,6 +131,9 @@ def write_dropin(
     if not cp.has_section("Service"):
         cp.add_section("Service")
 
+    # MemoryHigh was written by old versions; scrub it on rewrite.
+    cp.remove_option("Service", "MemoryHigh")
+
     if memory_max is not None:
         cp.set("Service", "MemoryMax", memory_max)
     if cpu_quota is not None:
@@ -408,7 +411,7 @@ class ServiceManager:
             res.warn(f"daemon-reload failed: {reload_cp.stderr.strip()}")
 
         set_cp = set_property_runtime(
-            instance_unit, MemoryMax="infinity", CPUQuota=""
+            instance_unit, MemoryMax="infinity", CPUQuota="", MemoryHigh=""
         )
         res.set_runtime = set_cp.returncode == 0
         if not res.set_runtime:
