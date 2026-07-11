@@ -270,14 +270,19 @@ _MEM_RE = re.compile(
     re.IGNORECASE,
 )
 
-_SUFFIX_FACTORS = {
-    "": 1,
-    "K": 1024,
-    "M": 1024 ** 2,
-    "G": 1024 ** 3,
-    "T": 1024 ** 4,
-    "P": 1024 ** 5,
-}
+# Largest-to-smallest so callers that want "the biggest suffix that
+# evenly divides a byte count" (e.g. the TUI's edit-box prefill) can
+# just walk this tuple. `_SUFFIX_FACTORS` (used for parsing) is derived
+# from the same values so the two directions can't drift apart.
+MEMORY_SUFFIXES: tuple[tuple[str, int], ...] = (
+    ("P", 1024 ** 5),
+    ("T", 1024 ** 4),
+    ("G", 1024 ** 3),
+    ("M", 1024 ** 2),
+    ("K", 1024),
+)
+
+_SUFFIX_FACTORS = {"": 1, **dict(MEMORY_SUFFIXES)}
 
 
 def parse_memory(s: str) -> tuple[str | None, str | None]:

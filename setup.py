@@ -15,7 +15,8 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "cgwatcher=cgwatcher:main",
+            "cgwatcher=cgwatch.tui:main",
+            "cgwatcherd=cgwatch.daemon:main",
         ],
     },
 )
