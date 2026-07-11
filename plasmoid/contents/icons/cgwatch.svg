@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- RAM-stick motif: outline + bottom pin notches + a partial fill bar
+       with a limit tick mark. currentColor throughout (two opacity levels)
+       so it works as a plain symbolic/monochrome icon as well as in the
+       widget picker. -->
+  <rect x="3" y="5" width="18" height="11" rx="2" ry="2"
+        fill="none" stroke="currentColor" stroke-width="1.6"/>
+  <rect x="4.2" y="6.2" width="9" height="8.6" rx="1" fill="currentColor" opacity="0.35"/>
+  <line x1="17" y1="4.3" x2="17" y2="16.7" stroke="currentColor" stroke-width="1.3"/>
+  <rect x="5.3" y="16" width="1.4" height="2.2" fill="currentColor"/>
+  <rect x="8.3" y="16" width="1.4" height="2.2" fill="currentColor"/>
+  <rect x="11.3" y="16" width="1.4" height="2.2" fill="currentColor"/>
+  <rect x="14.3" y="16" width="1.4" height="2.2" fill="currentColor"/>
+  <rect x="17.3" y="16" width="1.4" height="2.2" fill="currentColor"/>
+</svg>

@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "kind": "dump",
+  "ok": true,
+  "ts_ms": 1751800000000,
+  "cgroups": [
+    {
+      "name": "syncthing.service",
+      "unit": "syncthing.service",
+      "short_name": "syncthing.service",
+      "description": "Syncthing - Open Source Continuous File Synchronization",
+      "memory_current": 327491256,
+      "memory_max": 1073741824,
+      "memory_percent": 30.5,
+      "cpu_quota_percent": 50.0,
+      "cpu_stat": {
+        "usage_usec": 45678901,
+        "nr_periods": 612000,
+        "nr_throttled": 0,
+        "throttled_usec": 0
+      },
+      "edit_prefill": {
+        "memory": "1G",
+        "cpu": "50%"
+      }
+    },
+    {
+      "name": "app-org.kde.dolphin@55667788.service",
+      "unit": "app-org.kde.dolphin@.service",
+      "short_name": "org.kde.dolphin",
+      "description": "Dolphin",
+      "memory_current": 64424509,
+      "memory_max": 536870912,
+      "memory_percent": 12.0,
+      "cpu_quota_percent": null,
+      "cpu_stat": {
+        "usage_usec": 15678234,
+        "nr_periods": 210000,
+        "nr_throttled": 0,
+        "throttled_usec": 0
+      },
+      "edit_prefill": {
+        "memory": "512M",
+        "cpu": "max"
+      }
+    },
+    {
+      "name": "gnome-terminal-server.service",
+      "unit": "gnome-terminal-server.service",
+      "short_name": "gnome-terminal-server.service",
+      "description": "GNOME Terminal Server",
+      "memory_current": 13421773,
+      "memory_max": 268435456,
+      "memory_percent": 5.0,
+      "cpu_quota_percent": null,
+      "cpu_stat": {
+        "usage_usec": 3456789,
+        "nr_periods": 98000,
+        "nr_throttled": 0,
+        "throttled_usec": 0
+      },
+      "edit_prefill": {
+        "memory": "256M",
+        "cpu": "max"
+      }
+    }
+  ],
+  "candidates": [
+    {
+      "unit": "app-spotify@44556677.service",
+      "template": "app-spotify@.service",
+      "description": "Spotify",
+      "memory_current": 734003200
+    },
+    {
+      "unit": "obs-studio.service",
+      "template": "obs-studio.service",
+      "description": "OBS Studio",
+      "memory_current": 314572800
+    }
+  ]
+}

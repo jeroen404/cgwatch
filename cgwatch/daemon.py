@@ -61,6 +61,25 @@ def send_notification(title, body,timeout,urgency,app_name,icon):
         print(f"Error sending notification: {e}")
 
 
+def _maybe_notify(cg, mem_percent, last_notified, reset_hysteresis, title, urgency, app_name, icon, timeout):
+    """Send a threshold-crossing notification for `cg`, respecting the
+    hysteresis window against the last percent notified for it.
+
+    Shared body of the critical/warning notification blocks in `main`'s
+    loop -- they differ only in `title`/`urgency`.
+    """
+    if mem_percent > last_notified[cg.name] + reset_hysteresis:
+        last_notified[cg.name] = mem_percent
+        send_notification(
+            title,
+            f"{cg.get_short_name()} is using {mem_percent:.1f}% of its memory limit ({humanize.naturalsize(cg.get_current_memory_usage())} / {humanize.naturalsize(cg.get_memory_limit())})",
+            urgency=urgency,
+            app_name=app_name,
+            icon=icon,
+            timeout=timeout,
+        )
+
+
 def main():
     config = load_config()
     PERCENT_WARNING_THRESHOLD = config.getint('Thresholds', 'warning_percent')
@@ -87,27 +106,15 @@ def main():
             for cg in memory_limited_cgroups:
                 mem_percent = cg.get_percent_memory_usage()
                 if mem_percent >= PERCENT_CRITICAL_THRESHOLD:
-                    if mem_percent > last_notified[cg.name] + PERCENT_RESET_HYSTERESIS:
-                        last_notified[cg.name] = mem_percent
-                        send_notification(
-                            "Memory limit critical",
-                            f"{cg.get_short_name()} is using {mem_percent:.1f}% of its memory limit ({humanize.naturalsize(cg.get_current_memory_usage())} / {humanize.naturalsize(cg.get_memory_limit())})",
-                            urgency="critical",
-                            app_name=MYNAME,
-                            icon=ICON,
-                            timeout=TIMEOUT_MS,
-                        )
+                    _maybe_notify(
+                        cg, mem_percent, last_notified, PERCENT_RESET_HYSTERESIS,
+                        "Memory limit critical", "critical", MYNAME, ICON, TIMEOUT_MS,
+                    )
                 elif mem_percent >= PERCENT_WARNING_THRESHOLD:
-                    if mem_percent > last_notified[cg.name] + PERCENT_RESET_HYSTERESIS:
-                        last_notified[cg.name] = mem_percent
-                        send_notification(
-                            "Memory limit warning",
-                            f"{cg.get_short_name()} is using {mem_percent:.1f}% of its memory limit ({humanize.naturalsize(cg.get_current_memory_usage())} / {humanize.naturalsize(cg.get_memory_limit())})",
-                            urgency="normal",
-                            app_name=MYNAME,
-                            icon=ICON,
-                            timeout=TIMEOUT_MS,
-                        )
+                    _maybe_notify(
+                        cg, mem_percent, last_notified, PERCENT_RESET_HYSTERESIS,
+                        "Memory limit warning", "normal", MYNAME, ICON, TIMEOUT_MS,
+                    )
                 else:
                     if mem_percent < PERCENT_WARNING_THRESHOLD - PERCENT_RESET_HYSTERESIS:
                         last_notified[cg.name] = 0  # reset notification state

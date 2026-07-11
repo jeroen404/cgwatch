@@ -4,7 +4,7 @@
 import cgwatch
 from cgwatch.cgroup import CGroupTree, CGroup
 from cgwatch import service as svc
-from cgwatch.service import MEMORY_SUFFIXES
+from cgwatch.service import _fmt_cpu_for_edit, _fmt_memory_for_edit
 from cgwatch.config import (
     CONFIG_DIR,
     build_default_parser,
@@ -19,7 +19,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import HorizontalGroup, VerticalScroll, Vertical, Horizontal
 from textual.screen import ModalScreen
-from textual.widgets import Button, Label, Footer, Header, Input, OptionList, Static
+from textual.widgets import Button, Label, Footer, Input, OptionList, Static
 from textual.widgets.option_list import Option
 from textual.color import Color
 from textual.reactive import reactive
@@ -136,18 +136,12 @@ class CGroupCPUPercentUsage(ReactiveMetricLabel):
     def _render_update(self, value) -> None:
         if self.cgroup.has_cpu_quota():
             quota = self.cgroup.get_cpu_quotum()
-            # self.log(f"quota type: {type(quota)}, value: {quota}")
             new_color = MyColors.percent_of_percent_to_rgb(value, quota)
-            # self.log(f"new color: {new_color}")
             self.styles.color = new_color
             new_color_hex = new_color.hex
-            # self.log(f"new color hex: {new_color_hex}")
-            #self.update(f"[{new_color}.hex]{value:.2f}%[/]")
             self.update(f"[{new_color_hex}]{value:.2f}%[/]")
         else:
             self.styles.color = "yellow"
-
-        #self.update(f"{value:.2f}%")
 
     def _after_init(self) -> None:
         self.styles.color = "green"
@@ -274,36 +268,6 @@ class CGroupLine(HorizontalGroup):
             self.app.notify(f"MemoryMax → {new_value}")
         self.refresh_data()
 
-def _fmt_memory_for_edit(cgroup: CGroup) -> str:
-    """Show an existing memory limit in a form the user can re-edit."""
-    raw = cgroup.get_memory_limit()
-    if raw == "max":
-        return "max"
-    try:
-        n = int(raw)
-    except (ValueError, TypeError):
-        return ""
-    # 0 is a multiple of every factor, so it would match the first
-    # (largest) suffix in the loop below; the pre-refactor formatter
-    # emitted "0G" for a zero MemoryMax, so preserve that here.
-    if n == 0:
-        return "0G"
-    for suffix, factor in MEMORY_SUFFIXES:
-        if n % factor == 0:
-            return f"{n // factor}{suffix}"
-    return str(n)
-
-
-def _fmt_cpu_for_edit(cgroup: CGroup) -> str:
-    q = cgroup.get_cpu_quotum()
-    if q == "max":
-        return "max"
-    try:
-        return f"{int(round(float(q)))}%"
-    except (ValueError, TypeError):
-        return ""
-
-
 _NAV_BINDINGS = [
     Binding("escape", "cancel", "Cancel"),
     Binding("up", "focus_up", show=False),
@@ -334,6 +298,26 @@ class CGModalScreen(ModalScreen[bool]):
         """Show a validation/apply error to the user; subclasses must implement."""
         raise NotImplementedError
 
+    def _present_outcome(self, outcome: "svc.ResolveOutcome") -> None:
+        """Show/notify a ``svc.ResolveOutcome`` and dismiss on success.
+
+        Shared tail of both ``_apply_limits`` (below) and
+        ``AddServiceModal._save``: shows the error (via `self._show_error`)
+        and leaves the modal open on any validation or apply failure. On
+        success, surfaces any warnings via `self.app.notify` and dismisses
+        with `True`.
+        """
+        if outcome.error is not None:
+            self._show_error(outcome.error)
+            return
+        result = outcome.apply_result
+        if not result.ok:
+            self._show_error("; ".join(result.messages) or "apply failed")
+            return
+        if result.messages:
+            self.app.notify("; ".join(result.messages), severity="warning")
+        self.dismiss(True)
+
     def _apply_limits(
         self,
         target: str,
@@ -343,28 +327,11 @@ class CGModalScreen(ModalScreen[bool]):
     ) -> None:
         """Parse MemoryMax/CPUQuota input and apply them to `target`.
 
-        Shows the error (via `self._show_error`) and leaves the modal
-        open on any validation or apply failure. On success, surfaces
-        any warnings via `self.app.notify` and dismisses with `True`.
+        Presentation-only wrapper around the shared decision logic in
+        ``svc.apply_limits``.
         """
-        mem, err = svc.parse_memory(mem_raw)
-        if err:
-            self._show_error(f"MemoryMax: {err}")
-            return
-        cpu, err = svc.parse_cpu_quota(cpu_raw)
-        if err:
-            self._show_error(f"CPUQuota: {err}")
-            return
-        if mem is None and cpu is None:
-            self._show_error(empty_message)
-            return
-        result = svc.ServiceManager().apply(target, mem, cpu)
-        if not result.ok:
-            self._show_error("; ".join(result.messages) or "apply failed")
-            return
-        if result.messages:
-            self.app.notify("; ".join(result.messages), severity="warning")
-        self.dismiss(True)
+        outcome = svc.apply_limits(target, mem_raw, cpu_raw, empty_message=empty_message)
+        self._present_outcome(outcome)
 
 
 class ConfirmModal(CGModalScreen):
@@ -472,18 +439,8 @@ class AddServiceModal(CGModalScreen):
         self._tree = tree
 
     def compose(self) -> ComposeResult:
-        running = svc.list_running_services()
-        candidates = [
-            r for r in running
-            if svc.cgroup_name_to_unit(r) not in self._already
-        ]
+        candidates = svc.candidate_service_names(self._tree, self._already)
         cg_by_name = {cg.name: cg for cg in self._tree.all_cgroups()}
-        # Sort by memory usage descending
-        candidates.sort(
-            key=lambda n: int(cg_by_name[n].get_current_memory_usage())
-            if n in cg_by_name else 0,
-            reverse=True,
-        )
         MEM_COL = 10  # width for right-justified humanized memory
         options = []
         for name in candidates:
@@ -543,28 +500,19 @@ class AddServiceModal(CGModalScreen):
             self._save()
 
     def _save(self) -> None:
-        unit = self.query_one("#add-unit", Input).value.strip()
-        if not unit:
-            self._show_error("pick or type a unit name")
-            return
-        if not unit.endswith(".service"):
-            unit = unit + ".service"
-        # Resolve a running instance for the runtime set-property call.
-        # `systemctl show` refuses bare template names (e.g. for transient
-        # app-*@.service units started by a desktop launcher), so don't
-        # hard-fail validation on those — trust the name and let the
-        # drop-in lie dormant if the service never appears.
-        runtime_target = svc.find_running_instance(unit)
-        is_template = unit.endswith("@.service")
-        if runtime_target is None and not is_template and not svc.unit_exists(unit):
-            self._show_error(f"systemd doesn't know unit '{unit}'")
-            return
+        # Unit resolution (blank check, ".service" suffixing, resolving a
+        # running instance for the runtime set-property call -- `systemctl
+        # show` refuses bare template names, e.g. for transient
+        # app-*@.service units started by a desktop launcher, so validation
+        # doesn't hard-fail on those and just trusts the name) plus
+        # MemoryMax/CPUQuota parsing and the actual apply all live in
+        # ``svc.resolve_and_apply`` now, shared with the CLI's ``apply``
+        # command.
+        unit_raw = self.query_one("#add-unit", Input).value.strip()
         mem_raw = self.query_one("#add-mem", Input).value
         cpu_raw = self.query_one("#add-cpu", Input).value
-        self._apply_limits(
-            runtime_target or unit, mem_raw, cpu_raw,
-            "set at least one of MemoryMax / CPUQuota",
-        )
+        outcome = svc.resolve_and_apply(unit_raw, mem_raw, cpu_raw)
+        self._present_outcome(outcome)
 
 
 class CGHeaderbar(HorizontalGroup):
@@ -623,12 +571,7 @@ class CGroupWatcherApp(App):
 
     def _limited_templates(self) -> set[str]:
         """Templates of services currently memory- or CPU-limited."""
-        templates: set[str] = set()
-        for cg in self.user_tree.get_memory_limited_cgroups():
-            templates.add(svc.cgroup_name_to_unit(cg.name))
-        for cg in self.user_tree.get_cpu_limited_cgroups():
-            templates.add(svc.cgroup_name_to_unit(cg.name))
-        return templates
+        return svc.limited_templates(self.user_tree)
 
     def _focus_line_at(self, offset: int) -> None:
         lines = list(self.query(CGroupLine))

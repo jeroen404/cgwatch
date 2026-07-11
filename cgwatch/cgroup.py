@@ -36,7 +36,6 @@ class CGroup:
         children_names = self.get_sysfs_children()
         for child_name in children_names:
             child_cgroup = CGroup(child_name, parent=self)
-            #self.add_child(child_cgroup)
             child_cgroup.build_subtree()
     def update_subtree(self):
         # Update existing children and add new ones
@@ -50,7 +49,6 @@ class CGroup:
         # Add new children
         for child_name in current_children_names - existing_children_names:
             child_cgroup = CGroup(child_name, parent=self)
-            #self.children.append(child_cgroup) already done in __init__
             child_cgroup.build_subtree()
     def get_memory_limit(self):
         limit_file = os.path.join(self.get_sysfs_path(), "memory.max")
@@ -102,7 +100,7 @@ class CGroup:
     # throttled_usec 89540730
     # nr_bursts 0
     # burst_usec 0
-    def __get_cpu_stat(self):
+    def get_cpu_stat(self):
         usage_file = os.path.join(self.get_sysfs_path(), "cpu.stat")
         try:
             with open(usage_file, "r") as f:
@@ -115,7 +113,7 @@ class CGroup:
         except FileNotFoundError:
             return {}
     def refresh_cpu_usage_history(self):
-        stat = self.__get_cpu_stat()
+        stat = self.get_cpu_stat()
         self.cpu_usage_history.refresh(stat)
     def get_cpu_last_usage_percent(self):
         self.refresh_cpu_usage_history()
@@ -156,58 +154,62 @@ class CGroupCPUUsageHistory:
     def throttled_since_last(self):
         if len(self.usage_history) >= 2:
             throttled_diff = int(self.usage_history[-1].get("nr_throttled", 0)) - int(self.usage_history[-2].get("nr_throttled", 0))
-            return throttled_diff
+            # Clamp negatives: nr_throttled is a cumulative counter that resets
+            # to 0 when the service restarts (new cgroup, fresh counters), which
+            # would otherwise yield a bogus negative "throttled since last".
+            # Mirrors logic.js throttledDelta()'s clamp.
+            return max(0, throttled_diff)
         return 0
             
 
+def _walk(cgroup):
+    """Pre-order depth-first traversal of a cgroup subtree: `cgroup`
+    itself, then each child's subtree, in child-list order.
+
+    Shared by `CGroupTree.all_cgroups`/`map_cgroups`/`filter_cgroups` and
+    `__repr__`, which previously each hand-rolled an identical recursive
+    `traverse()` closure.
+    """
+    yield cgroup
+    for child in cgroup.children:
+        yield from _walk(child)
+
+
+def _depth(cgroup):
+    """Distance from `cgroup` to the tree root, by walking `.parent`."""
+    depth = 0
+    node = cgroup.parent
+    while node is not None:
+        depth += 1
+        node = node.parent
+    return depth
+
+
 class CGroupTree:
-    
+
     def __init__(self, root_name):
         self.root = CGroup(root_name)
         self.build_tree()
-    
+
     def build_tree(self):
         self.root.build_subtree()
     def update_tree(self):
         self.root.update_subtree()
-    
+
     def all_cgroups(self):
-        result = []
-        def traverse(cgroup):
-            result.append(cgroup)
-            for child in cgroup.children:
-                traverse(child)
-        traverse(self.root)
-        return result
+        return list(_walk(self.root))
     def map_cgroups(self, func):
-        result = []
-        def traverse(cgroup):
-            result.append(func(cgroup))
-            for child in cgroup.children:
-                traverse(child)
-        traverse(self.root)
-        return result
+        return [func(cg) for cg in _walk(self.root)]
     def filter_cgroups(self, predicate):
-        result = []
-        def traverse(cgroup):
-            if predicate(cgroup):
-                result.append(cgroup)
-            for child in cgroup.children:
-                traverse(child)
-        traverse(self.root)
-        return result
+        return [cg for cg in _walk(self.root) if predicate(cg)]
     def get_memory_limited_cgroups(self):
         return self.filter_cgroups(lambda cg: cg.has_memory_limit())
     def get_cpu_limited_cgroups(self):
         return self.filter_cgroups(lambda cg: cg.has_cpu_quota())
     def __repr__(self):
         result = ""
-        def traverse(cgroup, depth):
-            nonlocal result
-            result += "  " * depth + repr(cgroup) + "\n"
-            for child in cgroup.children:
-                traverse(child, depth + 1)
-        traverse(self.root, 0)
+        for cg in _walk(self.root):
+            result += "  " * _depth(cg) + repr(cg) + "\n"
         return result
-    
+
 

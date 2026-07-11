@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "kind": "apply",
+  "ok": true,
+  "unit": "app-firefox\\x2desr@.service",
+  "messages": [],
+  "wrote_dropin": true,
+  "reloaded": true,
+  "set_runtime": true
+}

@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "kind": "dump",
+  "ok": true,
+  "ts_ms": 1751800300000,
+  "cgroups": [
+    {
+      "name": "app-firefox\\x2desr@3e2f8b91.service",
+      "unit": "app-firefox\\x2desr@.service",
+      "short_name": "firefox-esr",
+      "description": "Firefox Web Browser (ESR)",
+      "memory_current": 1288490189,
+      "memory_max": 2147483648,
+      "memory_percent": 60.0,
+      "cpu_quota_percent": 200.0,
+      "cpu_stat": {
+        "usage_usec": @USAGE@,
+        "nr_periods": @PERIODS@,
+        "nr_throttled": @THROTTLED@,
+        "throttled_usec": 91234567
+      },
+      "edit_prefill": {
+        "memory": "2G",
+        "cpu": "200%"
+      }
+    },
+    {
+      "name": "syncthing.service",
+      "unit": "syncthing.service",
+      "short_name": "syncthing.service",
+      "description": "Syncthing - Open Source Continuous File Synchronization",
+      "memory_current": 268435456,
+      "memory_max": 1073741824,
+      "memory_percent": 25.0,
+      "cpu_quota_percent": 50.0,
+      "cpu_stat": {
+        "usage_usec": 45678901,
+        "nr_periods": 612000,
+        "nr_throttled": 0,
+        "throttled_usec": 0
+      },
+      "edit_prefill": {
+        "memory": "1G",
+        "cpu": "50%"
+      }
+    },
+    {
+      "name": "app-slack@9f8e7d6c.service",
+      "unit": "app-slack@.service",
+      "short_name": "slack",
+      "description": "Slack Desktop Client",
+      "memory_current": 1320702444,
+      "memory_max": 1610612736,
+      "memory_percent": 82.0,
+      "cpu_quota_percent": 150.0,
+      "cpu_stat": {
+        "usage_usec": 298765432,
+        "nr_periods": 401000,
+        "nr_throttled": 112,
+        "throttled_usec": 9871234
+      },
+      "edit_prefill": {
+        "memory": "1536M",
+        "cpu": "150%"
+      }
+    }
+  ],
+  "candidates": [
+    {
+      "unit": "app-spotify@44556677.service",
+      "template": "app-spotify@.service",
+      "description": "Spotify",
+      "memory_current": 734003200
+    },
+    {
+      "unit": "obs-studio.service",
+      "template": "obs-studio.service",
+      "description": "OBS Studio",
+      "memory_current": 314572800
+    }
+  ]
+}

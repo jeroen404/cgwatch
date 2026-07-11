@@ -131,6 +131,67 @@ show_descriptions = false
 toggle descriptions with `n`, cgwatch saves the current setting on exit and
 uses it as the next startup default.
 
+# Plasma widget
+
+A small KDE Plasma 6 panel widget (`plasmoid/`) — a native third client
+alongside the TUI and the notification daemon. The panel shows a compact
+gauge (calm/warning/critical, throttle badge); its popup lists the same
+limited cgroups as the TUI with live CPU%/throttle deltas, and offers the
+same actions: edit a limit inline, unlimit a service, or add a limit to a
+running-but-unlimited service.
+
+![Plasma widget popup](doc/plasmoid.png)
+
+It talks to a small stateless helper, `cgwatch-cli` (`cgwatch/jsonapi.py`),
+run on a timer — the widget itself never touches systemd/cgroups directly.
+
+## Install
+
+```shell
+./plasmoid/install.sh          # copy install
+./plasmoid/install.sh --link   # dev mode: symlink the repo in as the package
+./plasmoid/install.sh --uninstall
+```
+
+Then add it from panel right-click -> *Add Widgets…* -> **CGWatch**.
+Plasma picks up a brand-new widget live, but its QML component cache is
+process-wide, so after editing the widget's code (`--link` dev mode) or
+updating an already-installed copy, restart Plasma to load it:
+
+```shell
+systemctl --user restart plasma-plasmashell.service
+```
+
+## Settings
+
+Right-click the widget -> *Configure CGWatch…*.
+
+`cgwatch-cli` must be resolvable at the point plasmashell invokes it, which
+**may not include `~/.local/bin`** even if your login shell's `PATH` does —
+if the widget reports "cgwatch-cli not found", set **Helper command** to an
+absolute path (e.g. `~/.local/bin/cgwatch-cli` or wherever `pip`/`setup.py`
+installed the entry point) in the General settings page. Leave it at the
+`cgwatch-cli` default otherwise.
+
+Poll interval, request timeout, and the warning/critical memory thresholds
+are also configurable there; the Display page toggles descriptions vs. unit
+names in the popup and the panel's throttle badge.
+
+## Mock mode (no live systemd session needed)
+
+Point **Helper command** at the bundled mock script and drive it with a
+scenario file:
+
+```shell
+# Helper command (widget settings): /path/to/cgwatch/plasmoid/tools/mock-cgwatch-cli.sh
+echo critical > ~/.cache/cgwatch/scenario
+```
+
+Scenarios: `calm`, `warning`, `critical`, `throttled`, `many`, `fail`
+(simulated crash), `missing` (simulated missing helper), `badjson`,
+`applyfail`/`applywarn` (`apply` action outcomes — `unlimit` always
+succeeds in mock mode). Unset/unknown falls back to `calm`.
+
 # Build
 ```shell
 debuild -us -uc -b

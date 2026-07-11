@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+    <kcfgfile name=""/>
+
+    <group name="General">
+        <entry name="helperCommand" type="String">
+            <label>cgwatch-cli command (absolute path if not on plasmashell's PATH)</label>
+            <default>cgwatch-cli</default>
+        </entry>
+        <entry name="pollInterval" type="Int">
+            <label>Poll interval in seconds</label>
+            <default>2</default>
+        </entry>
+        <entry name="requestTimeout" type="Int">
+            <label>Per-request timeout in seconds</label>
+            <default>10</default>
+        </entry>
+        <entry name="warningPercent" type="Int">
+            <label>Warning memory threshold (percent)</label>
+            <default>80</default>
+        </entry>
+        <entry name="criticalPercent" type="Int">
+            <label>Critical memory threshold (percent)</label>
+            <default>90</default>
+        </entry>
+
+        <!-- Display -->
+        <entry name="showDescriptions" type="Bool">
+            <label>Show service descriptions instead of unit names</label>
+            <default>false</default>
+        </entry>
+        <entry name="showThrottleBadge" type="Bool">
+            <label>Show the throttle badge in the panel</label>
+            <default>true</default>
+        </entry>
+    </group>
+</kcfg>

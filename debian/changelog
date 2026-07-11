@@ -1,3 +1,11 @@
+cgwatch (0.3.0-1) UNRELEASED; urgency=medium
+
+  * Add cgwatch-cli JSON helper (installed to /usr/bin) and a KDE Plasma 6
+    widget (eu.404.cgwatch) that uses it: panel memory gauge + CPU-throttle
+    indicator, popup to view and adjust per-service limits.
+
+ -- Jeroen <jeroen@404.eu>  Sat, 11 Jul 2026 17:41:58 +0200
+
 cgwatch (0.2.2-1) UNRELEASED; urgency=medium
 
   * Scrub leftover MemoryHigh from drop-ins on rewrite; clear runtime

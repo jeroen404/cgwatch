@@ -18,7 +18,7 @@ jobs:
       - name: Install build dependencies
         run: |
           apt-get update
-          apt-get install -y debhelper dh-python python3-all python3-setuptools pybuild-plugin-pyproject
+          apt-get install -y debhelper dh-python python3-all python3-setuptools pybuild-plugin-pyproject python3-textual python3-humanize
 
       - name: Build .deb
         run: dpkg-buildpackage -b --no-sign

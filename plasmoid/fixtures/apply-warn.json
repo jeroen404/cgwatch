@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "kind": "apply",
+  "ok": true,
+  "unit": "app-code@.service",
+  "messages": [
+    "runtime apply failed (persisted, applies on next start): Unit app-code@.service not loaded."
+  ],
+  "wrote_dropin": true,
+  "reloaded": true,
+  "set_runtime": false
+}

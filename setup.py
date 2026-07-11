@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="cgwatch",
-    version="0.2.2",
+    version="0.3.0",
     description="CGroup Memory Watcher and TUI for the Linux desktop",
     author="Jeroen",
     url="https://github.com/jeroen404/cgwatch",
@@ -17,6 +17,7 @@ setup(
         "console_scripts": [
             "cgwatcher=cgwatch.tui:main",
             "cgwatcherd=cgwatch.daemon:main",
+            "cgwatch-cli=cgwatch.jsonapi:main",
         ],
     },
 )

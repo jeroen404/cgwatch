@@ -1,0 +1,102 @@
+{
+  "schema": 1,
+  "kind": "dump",
+  "ok": true,
+  "ts_ms": 1751800100000,
+  "cgroups": [
+    {
+      "name": "app-firefox\\x2desr@3e2f8b91.service",
+      "unit": "app-firefox\\x2desr@.service",
+      "short_name": "firefox-esr",
+      "description": "Firefox Web Browser (ESR)",
+      "memory_current": 1181116006,
+      "memory_max": 2147483648,
+      "memory_percent": 55.0,
+      "cpu_quota_percent": 200.0,
+      "cpu_stat": {
+        "usage_usec": 812345678,
+        "nr_periods": 734000,
+        "nr_throttled": 812,
+        "throttled_usec": 91234567
+      },
+      "edit_prefill": {
+        "memory": "2G",
+        "cpu": "200%"
+      }
+    },
+    {
+      "name": "app-slack@9f8e7d6c.service",
+      "unit": "app-slack@.service",
+      "short_name": "slack",
+      "description": "Slack Desktop Client",
+      "memory_current": 1417339208,
+      "memory_max": 1610612736,
+      "memory_percent": 88.0,
+      "cpu_quota_percent": 150.0,
+      "cpu_stat": {
+        "usage_usec": 298765432,
+        "nr_periods": 401000,
+        "nr_throttled": 112,
+        "throttled_usec": 9871234
+      },
+      "edit_prefill": {
+        "memory": "1536M",
+        "cpu": "150%"
+      }
+    },
+    {
+      "name": "app-discord@22334455.service",
+      "unit": "app-discord@.service",
+      "short_name": "discord",
+      "description": "Discord",
+      "memory_current": 1717986918,
+      "memory_max": 2147483648,
+      "memory_percent": 80.0,
+      "cpu_quota_percent": 100.0,
+      "cpu_stat": {
+        "usage_usec": 356789012,
+        "nr_periods": 333000,
+        "nr_throttled": 61,
+        "throttled_usec": 3456789
+      },
+      "edit_prefill": {
+        "memory": "2G",
+        "cpu": "100%"
+      }
+    },
+    {
+      "name": "app-code@f91a2b3c.service",
+      "unit": "app-code@.service",
+      "short_name": "code",
+      "description": "Visual Studio Code",
+      "memory_current": 858993459,
+      "memory_max": 4294967296,
+      "memory_percent": 20.0,
+      "cpu_quota_percent": null,
+      "cpu_stat": {
+        "usage_usec": 120456789,
+        "nr_periods": 198000,
+        "nr_throttled": 5,
+        "throttled_usec": 612345
+      },
+      "edit_prefill": {
+        "memory": "4G",
+        "cpu": "max"
+      }
+    }
+  ],
+  "candidates": [
+    {
+      "unit": "app-spotify@44556677.service",
+      "template": "app-spotify@.service",
+      "description": "Spotify",
+      "memory_current": 734003200
+    },
+    {
+      "unit": "obs-studio.service",
+      "template": "obs-studio.service",
+      "description": "OBS Studio",
+      "memory_current": 314572800
+    }
+  ]
+}

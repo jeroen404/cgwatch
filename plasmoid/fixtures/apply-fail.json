@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "kind": "apply",
+  "ok": false,
+  "unit": "app-slack@.service",
+  "messages": [
+    "invalid memory value"
+  ],
+  "wrote_dropin": false,
+  "reloaded": false,
+  "set_runtime": false
+}

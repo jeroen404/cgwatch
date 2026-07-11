@@ -9,8 +9,10 @@ override_dh_auto_install:
 	mkdir -p debian/cgwatch/usr/bin
 	cp cgwatcher.py debian/cgwatch/usr/bin/cgwatcher
 	cp cgwatcherd.py debian/cgwatch/usr/bin/cgwatcherd
+	cp cgwatch_cli.py debian/cgwatch/usr/bin/cgwatch-cli
 	chmod +x debian/cgwatch/usr/bin/cgwatcher
 	chmod +x debian/cgwatch/usr/bin/cgwatcherd
+	chmod +x debian/cgwatch/usr/bin/cgwatch-cli
 
 override_dh_installsystemduser:
 	dh_installsystemduser --name=cgwatcherd --no-enable

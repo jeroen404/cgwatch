@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "kind": "unlimit",
+  "ok": true,
+  "unit": "app-chromium@.service",
+  "messages": [],
+  "wrote_dropin": true,
+  "reloaded": true,
+  "set_runtime": true
+}

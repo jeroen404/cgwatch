@@ -17,6 +17,8 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from cgwatch.cgroup import CGroup, CGroupTree
+
 
 DROPIN_FILENAME = "zz-cgwatch.conf"
 USER_UNIT_DIR = Path("~/.config/systemd/user").expanduser()
@@ -263,6 +265,66 @@ def unit_exists(unit: str) -> bool:
     return state in ("loaded", "stub")  # stub = exists on disk, not yet loaded
 
 
+# --- candidate listing -----------------------------------------------------
+
+
+def limited_templates(tree: CGroupTree) -> set[str]:
+    """Templates of services currently memory- or CPU-limited.
+
+    Shared by the CLI (``jsonapi._dump``) and the TUI
+    (``CGroupWatcherApp._limited_templates``) to filter the add-service
+    picker down to units that aren't already limited.
+    """
+    templates: set[str] = set()
+    for cg in tree.get_memory_limited_cgroups():
+        templates.add(cgroup_name_to_unit(cg.name))
+    for cg in tree.get_cpu_limited_cgroups():
+        templates.add(cgroup_name_to_unit(cg.name))
+    return templates
+
+
+def candidate_service_names(tree: CGroupTree, already: set[str] | None = None) -> list[str]:
+    """Running services not already memory/CPU-limited, as instance unit
+    names sorted by current memory usage descending.
+
+    ``already`` defaults to :func:`limited_templates` but can be passed
+    in by a caller that already computed it (e.g. the TUI, which reuses
+    the same set for other filtering). This is the shared filter+sort
+    core behind :func:`candidate_services` (JSON-shaped, for the CLI) and
+    the TUI's ``AddServiceModal.compose`` (which builds its own
+    humanized-memory ``Option`` labels on top of it).
+    """
+    if already is None:
+        already = limited_templates(tree)
+    running = list_running_services()
+    names = [r for r in running if cgroup_name_to_unit(r) not in already]
+    cg_by_name = {cg.name: cg for cg in tree.all_cgroups()}
+    names.sort(
+        key=lambda n: int(cg_by_name[n].get_current_memory_usage())
+        if n in cg_by_name else 0,
+        reverse=True,
+    )
+    return names
+
+
+def candidate_services(tree: CGroupTree, already: set[str] | None = None) -> list[dict]:
+    """Running-but-unlimited services for the add-service flow, as plain
+    dicts (the CLI's ``dump.candidates[]`` shape)."""
+    names = candidate_service_names(tree, already)
+    cg_by_name = {cg.name: cg for cg in tree.all_cgroups()}
+    result = []
+    for name in names:
+        cg = cg_by_name.get(name)
+        memory_current = int(cg.get_current_memory_usage()) if cg is not None else 0
+        result.append({
+            "unit": name,
+            "template": cgroup_name_to_unit(name),
+            "description": get_description(name),
+            "memory_current": memory_current,
+        })
+    return result
+
+
 # --- validation -----------------------------------------------------------
 
 _MEM_RE = re.compile(
@@ -331,6 +393,39 @@ def parse_cpu_quota(s: str) -> tuple[str | None, str | None]:
     if n < 1 or n > 10000:
         return None, "CPUQuota out of range (1..10000%)"
     return f"{n}%", None
+
+
+# --- edit-box prefill formatting -------------------------------------------
+
+
+def _fmt_memory_for_edit(cgroup: CGroup) -> str:
+    """Show an existing memory limit in a form the user can re-edit."""
+    raw = cgroup.get_memory_limit()
+    if raw == "max":
+        return "max"
+    try:
+        n = int(raw)
+    except (ValueError, TypeError):
+        return ""
+    # 0 is a multiple of every factor, so it would match the first
+    # (largest) suffix in the loop below; the pre-refactor formatter
+    # emitted "0G" for a zero MemoryMax, so preserve that here.
+    if n == 0:
+        return "0G"
+    for suffix, factor in MEMORY_SUFFIXES:
+        if n % factor == 0:
+            return f"{n // factor}{suffix}"
+    return str(n)
+
+
+def _fmt_cpu_for_edit(cgroup: CGroup) -> str:
+    q = cgroup.get_cpu_quotum()
+    if q == "max":
+        return "max"
+    try:
+        return f"{int(round(float(q)))}%"
+    except (ValueError, TypeError):
+        return ""
 
 
 # --- orchestration --------------------------------------------------------
@@ -424,3 +519,103 @@ class ServiceManager:
                 "runtime unlimit failed: " + set_cp.stderr.strip()
             )
         return res
+
+
+# --- apply decision logic ---------------------------------------------------
+#
+# Shared "resolve a typed/passed unit name -> validate MemoryMax/CPUQuota ->
+# ServiceManager().apply()" sequence behind ``jsonapi._cmd_apply`` and the
+# TUI's ``AddServiceModal._save``/``CGModalScreen._apply_limits``. This is
+# pure decision logic -- no presentation. Each caller turns the returned
+# ``ResolveOutcome`` into its own user-facing form (JSON for the CLI,
+# ``_show_error``/``app.notify`` for the TUI).
+
+
+@dataclass
+class ResolveOutcome:
+    """Structured outcome of the shared unit-resolve/validate/apply flow.
+
+    Exactly one of ``error`` / ``apply_result`` is meaningful:
+    ``error`` is set when resolution or validation failed *before*
+    :meth:`ServiceManager.apply` ran (``apply_result`` is ``None`` then);
+    otherwise ``apply_result`` carries the (possibly itself failed)
+    :class:`ApplyResult` from the actual apply call.
+    """
+    ok: bool
+    unit: str
+    error: str | None = None
+    apply_result: ApplyResult | None = None
+
+
+def apply_limits(
+    target: str,
+    mem_raw: str | None,
+    cpu_raw: str | None,
+    *,
+    empty_message: str = "set at least one of MemoryMax / CPUQuota",
+) -> ResolveOutcome:
+    """Parse MemoryMax/CPUQuota input and apply them to `target`.
+
+    The shared "parse -> both-None check -> ``ServiceManager().apply()``"
+    tail of the apply sequence: used directly by the TUI's
+    ``CGModalScreen._apply_limits`` (for both ``AddServiceModal`` and
+    ``EditLimitsModal``) and as the second half of :func:`resolve_and_apply`
+    below (used by the CLI and ``AddServiceModal``).
+    """
+    mem, err = parse_memory(mem_raw)
+    if err:
+        return ResolveOutcome(ok=False, unit=target, error=f"MemoryMax: {err}")
+    cpu, err = parse_cpu_quota(cpu_raw)
+    if err:
+        return ResolveOutcome(ok=False, unit=target, error=f"CPUQuota: {err}")
+    if mem is None and cpu is None:
+        return ResolveOutcome(ok=False, unit=target, error=empty_message)
+    res = ServiceManager().apply(target, mem, cpu)
+    return ResolveOutcome(ok=res.ok, unit=target, apply_result=res)
+
+
+def resolve_and_apply(
+    unit_raw: str,
+    mem_raw: str | None,
+    cpu_raw: str | None,
+    *,
+    edit: bool = False,
+    empty_message: str = "set at least one of MemoryMax / CPUQuota",
+) -> ResolveOutcome:
+    """Full "resolve a typed unit name -> validate it's known -> parse
+    MemoryMax/CPUQuota -> apply" decision sequence, shared by the CLI's
+    ``apply`` command and the TUI's ``AddServiceModal._save``.
+
+    ``unit_raw`` is used as-is apart from the blank check (callers that
+    pre-strip user input, like the TUI's ``Input.value.strip()``, and
+    callers that don't, like the CLI's raw ``args.unit``, both keep their
+    existing behavior).
+
+    ``edit=True`` mirrors ``EditLimitsModal``'s save path: skip the
+    unit-existence rejection for an unknown unit (so the persistent
+    drop-in still gets written even if the instance already exited) while
+    still consulting :func:`find_running_instance` to pick the runtime
+    target. Default (``edit=False``, the add-service path) keeps the
+    rejection.
+    """
+    unit = unit_raw
+    if not unit.strip():
+        return ResolveOutcome(ok=False, unit=unit, error="pick or type a unit name")
+    if not unit.endswith(".service"):
+        unit = unit + ".service"
+
+    runtime_target = find_running_instance(unit)
+    is_template = unit.endswith("@.service")
+    if (
+        not edit
+        and runtime_target is None
+        and not is_template
+        and not unit_exists(unit)
+    ):
+        return ResolveOutcome(ok=False, unit=unit, error=f"systemd doesn't know unit '{unit}'")
+
+    outcome = apply_limits(
+        runtime_target or unit, mem_raw, cpu_raw, empty_message=empty_message,
+    )
+    outcome.unit = unit
+    return outcome

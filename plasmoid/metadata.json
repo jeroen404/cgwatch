@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "jeroen@404.eu",
+                "Name": "Jeroen"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "cgwatch memory/CPU limit monitor: panel capacity gauge for limited cgroups, popup list with live CPU%/throttle deltas, inline limit editing.",
+        "EnabledByDefault": true,
+        "Icon": "cgwatch",
+        "Id": "eu.404.cgwatch",
+        "License": "GPL-3.0-or-later",
+        "Name": "CGWatch",
+        "Version": "0.1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-Provides": []
+}
