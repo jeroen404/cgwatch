@@ -1,3 +1,12 @@
+cgwatch (0.3.1-1) UNRELEASED; urgency=medium
+
+  * Fix the Plasma widget pegging plasmashell at 100% CPU: the compact
+    memory gauge read its layout-managed width back into the panel's
+    size, a silent QtQuick.Layouts feedback loop. Also bump the widget's
+    metadata Version (was stuck at 0.1.0, shown in the About dialog).
+
+ -- Jeroen <jeroen@404.eu>  Sun, 12 Jul 2026 09:35:53 +0200
+
 cgwatch (0.3.0-1) UNRELEASED; urgency=medium
 
   * Add cgwatch-cli JSON helper (installed to /usr/bin) and a KDE Plasma 6
