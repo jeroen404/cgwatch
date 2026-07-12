@@ -384,21 +384,24 @@ PlasmoidItem {
             // Critical/warning counts live in the tooltip + popup, not here.
 
             // --- Slot 1: memory gauge (always present, fixed size) ---
-            // Track stays a dim fixed bar; the fill recolors green/orange/red
-            // by the worst-severity bucket and its width tracks the worst
-            // memory% across limited cgroups. Fill is a sibling (not a child)
-            // of the track so it renders at full opacity, not the track's dim.
-            Item {
+            // A single fixed-size Rectangle track (a well-behaved leaf item in
+            // the layout, like knagger's dots) whose semi-transparent COLOR --
+            // not an opacity property -- keeps it dim while the child fill
+            // renders at full opacity. The fill's width derives from the fixed
+            // 16px constant, NEVER from parent.width: reading the layout-set
+            // width here fed grid.implicitWidth -> compact.preferredWidth ->
+            // the panel -> back to this item's width, a QtQuick.Layouts
+            // feedback loop that silently pegged the main thread at 100% CPU
+            // (Qt doesn't flag it as a binding loop).
+            Rectangle {
+                id: memGauge
                 implicitWidth: 16
                 implicitHeight: 6
+                radius: 3
+                color: Qt.rgba(Kirigami.Theme.disabledTextColor.r,
+                               Kirigami.Theme.disabledTextColor.g,
+                               Kirigami.Theme.disabledTextColor.b, 0.3)
 
-                Rectangle { // dim track
-                    anchors.fill: parent
-                    radius: 3
-                    color: Qt.rgba(Kirigami.Theme.disabledTextColor.r,
-                                   Kirigami.Theme.disabledTextColor.g,
-                                   Kirigami.Theme.disabledTextColor.b, 0.3)
-                }
                 Rectangle { // severity-colored fill
                     visible: !root.neverPolled && root.buckets.total > 0
                     anchors.left: parent.left
@@ -408,7 +411,7 @@ PlasmoidItem {
                     color: root.buckets.criticalCount > 0 ? root.sevColor("critical")
                          : (root.buckets.warningCount > 0 ? root.sevColor("warning")
                                                           : root.sevColor("calm"))
-                    width: Math.max(2, parent.width
+                    width: Math.max(2, memGauge.implicitWidth
                                         * Math.min(100, Math.max(0, root.buckets.worstOverallPercent)) / 100)
                 }
             }
