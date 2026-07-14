@@ -13,6 +13,15 @@ import "logic.js" as Logic
 // all bake a "CGWATCH_POLL=<nonce>" env-var prefix into the command string
 // they return (dedup-buster for the exec dataengine only -- cgwatch-cli
 // itself never reads it); this file does not add its own prefix on top.
+//
+// CRITICAL: the nonce is STABLE per widget instance (instanceToken), NOT
+// per poll. The exec dataengine keys sources by the literal command and
+// backs them with a QQmlOpenMetaObject that GROWS a property per distinct
+// source key and never shrinks it. A per-poll nonce therefore leaked one
+// meta-object property every 2s; after hours the O(N) toMetaObject()
+// rebuild on each connect/disconnect pegged plasmashell's main thread at
+// 100% CPU (confirmed via gdb + an A/B DataSource repro). A stable key
+// keeps the source set at size 1, so connect/reconnect stays O(1).
 Item {
     id: api
 
@@ -33,11 +42,11 @@ Item {
     // "exited" handler can pass the right expectedKind to
     // Logic.parseHelperOutput() (version-skew detection).
     property string currentActionKind: ""
-    property int pollSeq: 0
-    property int actionSeq: 0
     // Two widget instances must never generate identical source strings: the
     // exec dataengine keys sources by the literal command and would coalesce
-    // their connect/disconnect lifecycles.
+    // their connect/disconnect lifecycles. This is per-instance and stable
+    // for the widget's lifetime (see the meta-object-growth note above for
+    // why it must NOT vary per poll).
     readonly property string instanceToken: Math.random().toString(36).slice(2, 10)
 
     function cfgLogic() {
@@ -49,8 +58,7 @@ Item {
     function poll() {
         if (currentPollCmd !== "")
             return false
-        pollSeq += 1
-        var nonce = instanceToken + "-p" + pollSeq
+        var nonce = instanceToken + "-p"
         currentPollCmd = Logic.buildDumpCommand(cfgLogic(), nonce)
         pollWatchdog.interval = (Math.max(1, requestTimeout) + 5) * 1000
         pollWatchdog.restart()
@@ -71,14 +79,12 @@ Item {
     // TUI's EditLimitsModal save path (cgwatch-cli apply --edit) -- see
     // main.qml's requestEditApply/requestApply.
     function applyLimits(unit, mem, cpu, isEdit) {
-        actionSeq += 1
-        var nonce = instanceToken + "-a" + actionSeq
+        var nonce = instanceToken + "-a"
         return runAction(Logic.buildApplyCommand(unit, mem, cpu, cfgLogic(), nonce, isEdit), "apply")
     }
 
     function unlimit(unit) {
-        actionSeq += 1
-        var nonce = instanceToken + "-a" + actionSeq
+        var nonce = instanceToken + "-a"
         return runAction(Logic.buildUnlimitCommand(unit, cfgLogic(), nonce), "unlimit")
     }
 

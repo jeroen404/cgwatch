@@ -1,3 +1,16 @@
+cgwatch (0.3.2-1) UNRELEASED; urgency=medium
+
+  * Fix the Plasma widget slowly pegging plasmashell at 100% CPU. Each poll
+    used a unique per-poll nonce in the executable-DataSource command; the
+    dataengine's QQmlOpenMetaObject grows a property per distinct source key
+    and never shrinks, so the O(N) meta-object rebuild on every poll crept
+    toward 100% over hours of uptime. The nonce is now stable per widget
+    instance, keeping the source set at size 1. (The earlier 0.3.1 compact
+    gauge fix addressed a different, mistaken hypothesis; this is the real
+    root cause, found via gdb + a Plasma5Support DataSource A/B repro.)
+
+ -- Jeroen <jeroen@404.eu>  Tue, 14 Jul 2026 10:49:24 +0200
+
 cgwatch (0.3.1-1) UNRELEASED; urgency=medium
 
   * Fix the Plasma widget pegging plasmashell at 100% CPU: the compact
