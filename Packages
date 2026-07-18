@@ -18,3 +18,23 @@ Description: CGroup Memory Watcher and TUI
  Includes a daemon (cgwatcherd) for desktop notifications on high memory usage
  and a TUI application (cgwatcher) for real-time monitoring.
 
+Package: cgwatch
+Version: 0.4.0-1
+Architecture: all
+Maintainer: Jeroen <jeroen@404.eu>
+Installed-Size: 228
+Depends: python3-humanize, python3-textual, python3:any, init-system-helpers (>= 1.52), libnotify-bin
+Suggests: plasma-workspace
+Filename: pool/cgwatch_0.4.0-1_all.deb
+Size: 59656
+MD5sum: e6ef566b9a6cc76a77793e18a2f4c639
+SHA1: 9d4f3b97ce031abef30a67025af62431b773c993
+SHA256: 046b0b384322225da44bc28545d55453eb09dc7cd8336f38736c44153f3939e5
+Section: utils
+Priority: optional
+Homepage: https://github.com/jeroen404/cgwatch
+Description: CGroup Memory Watcher and TUI
+ A tool to monitor cgroup memory usage and CPU quotas.
+ Includes a daemon (cgwatcherd) for desktop notifications on high memory usage
+ and a TUI application (cgwatcher) for real-time monitoring.
+
