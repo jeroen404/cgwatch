@@ -40,9 +40,12 @@ PlasmoidItem {
 
     // ---------------------------------------------------- action routing
     // candidates: raw `candidates[]` from the last successful dump
-    // (unit/template/description/memory_current), bound by AddServicePage.
-    property var candidates: []
-    property string candidatesSignature: ""
+    // (unit/template/description/memory_current). Mirrored into
+    // candidatesModel (below) via rebuildCandidates() -- AddServicePage's
+    // ListView binds to candidatesListModel, never to this raw array, so a
+    // volatile field (memory_current) changing every poll doesn't reset
+    // its scroll position/selection.
+    property var lastCandidates: []
 
     readonly property bool actionInFlight: api.actionInFlight
     // Sentinel pendingActionKey for the add-service page -- never a real
@@ -127,6 +130,9 @@ PlasmoidItem {
     ListModel { id: cgroupModel }
     readonly property var cgroupListModel: cgroupModel
 
+    ListModel { id: candidatesModel }
+    readonly property var candidatesListModel: candidatesModel
+
     // ------------------------------------------------------------ helpers
     function sevColor(sev) {
         switch (sev) {
@@ -181,15 +187,7 @@ PlasmoidItem {
             throttleActive = true
             throttleHoldTimer.restart()
         }
-        // Mirror lastModelSignature's idiom: only reassign candidates (and
-        // thus only re-bind AddServicePage's ListView model) when its
-        // content actually changed, not on every poll.
-        var newCandidates = (result.data && result.data.candidates) || []
-        var candSig = JSON.stringify(newCandidates)
-        if (candSig !== candidatesSignature) {
-            candidatesSignature = candSig
-            candidates = newCandidates
-        }
+        rebuildCandidates((result.data && result.data.candidates) || [])
         firstPollDone = true
         lastSuccessTs = Date.now()
         errorKind = ""
@@ -254,6 +252,64 @@ PlasmoidItem {
         cgroupModel.clear()
         for (var k = 0; k < rows.length; k++)
             cgroupModel.append(rows[k])
+    }
+
+    property string lastCandidatesSignature: ""
+
+    // Mirrors rebuildModel() above, keyed by the candidate's stable
+    // identity field `unit`. Deliberately excludes memory_current (and any
+    // other volatile field) from the structural signature -- that field
+    // changing every poll is exactly what must NOT trigger a rebuild that
+    // would reset AddServicePage's ListView scroll position/selection.
+    //
+    // force=true bypasses both the no-op skip and the addPageOpen freeze
+    // guard below; used only by onAddPageOpenChanged to take one fresh
+    // snapshot right as the page opens, before it starts freezing.
+    function rebuildCandidates(list, force) {
+        lastCandidates = list
+        var sig = JSON.stringify(list.map(function (c) { return c.unit }))
+        if (!force && sig === lastCandidatesSignature)
+            return
+        var sameOrder = list.length === candidatesModel.count
+        if (sameOrder) {
+            for (var i = 0; i < list.length; i++) {
+                if (candidatesModel.get(i).unit !== list[i].unit) {
+                    sameOrder = false
+                    break
+                }
+            }
+        }
+        if (!force && !sameOrder && root.addPageOpen) {
+            // TUI's modal guard, mirrored: a structural reorder (a service
+            // started/stopped being a candidate, or the memory-desc sort
+            // reordered the keys) while the add-service page is open would
+            // shift row indices out from under the user's click -- defer
+            // it. lastCandidatesSignature is only updated on an applied
+            // change, so the next poll after the page closes retries it.
+            return
+        }
+        lastCandidatesSignature = sig
+        if (sameOrder) {
+            // Same unit order: pure in-place role updates (memory_current/
+            // description) keep the ListView's scroll position/selection.
+            for (var j = 0; j < list.length; j++)
+                candidatesModel.set(j, list[j])
+            return
+        }
+        // Structural change: full rebuild. Do NOT be tempted to sync with
+        // ListModel.move()+set() -- see rebuildModel()'s comment above
+        // (knagger's finding: overlapping stale delegates on Plasma 6.3).
+        candidatesModel.clear()
+        for (var k = 0; k < list.length; k++)
+            candidatesModel.append(list[k])
+    }
+
+    // One fresh full rebuild right as the add page opens, so it shows
+    // current candidates before rebuildCandidates() starts freezing
+    // structural changes for the rest of the time it stays open.
+    onAddPageOpenChanged: {
+        if (addPageOpen)
+            rebuildCandidates(lastCandidates, true)
     }
 
     function updateStale() {

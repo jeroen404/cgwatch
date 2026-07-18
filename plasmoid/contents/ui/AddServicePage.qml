@@ -91,7 +91,7 @@ Item {
             ListView {
                 id: candidateList
                 clip: true
-                model: rootItem.candidates
+                model: rootItem.candidatesListModel
 
                 delegate: Item {
                     id: candDelegate
@@ -108,7 +108,7 @@ Item {
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
-                            unitField.text = modelData.template
+                            unitField.text = model.template
                             memField.forceActiveFocus()
                         }
                     }
@@ -126,18 +126,18 @@ Item {
                             PlasmaComponents.Label {
                                 Layout.fillWidth: true
                                 elide: Text.ElideMiddle
-                                text: addPage.collapseUnit(modelData.unit)
+                                text: addPage.collapseUnit(model.unit)
                             }
                             PlasmaComponents.Label {
-                                text: Logic.humanBytes(modelData.memory_current)
+                                text: Logic.humanBytes(model.memory_current)
                                 color: Kirigami.Theme.disabledTextColor
                             }
                         }
                         PlasmaComponents.Label {
                             Layout.fillWidth: true
-                            visible: modelData.description !== ""
+                            visible: model.description !== ""
                             elide: Text.ElideRight
-                            text: modelData.description
+                            text: model.description
                             font.pixelSize: Kirigami.Theme.smallFont.pixelSize
                             color: Kirigami.Theme.disabledTextColor
                         }

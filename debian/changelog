@@ -1,3 +1,14 @@
+cgwatch (0.3.3-1) UNRELEASED; urgency=medium
+
+  * Plasma widget: stop the "Add service" candidate list from resetting its
+    scroll position and selection on every poll. The list was backed by a
+    var-array model reassigned whenever any field changed (including the
+    live memory usage that updates every second); it now uses a ListModel
+    reconciled in place (keyed on unit, structural changes frozen while the
+    add page is open), matching the cgroup list's existing rebuild pattern.
+
+ -- Jeroen <jeroen@404.eu>  Sat, 18 Jul 2026 17:40:49 +0200
+
 cgwatch (0.3.2-1) UNRELEASED; urgency=medium
 
   * Fix the Plasma widget slowly pegging plasmashell at 100% CPU. Each poll
