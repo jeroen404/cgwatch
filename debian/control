@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Jeroen <jeroen@404.eu>
 Build-Depends: debhelper-compat (= 13), python3, dh-python, python3-textual, python3-humanize
 Standards-Version: 4.6.2
-Homepage: https://github.com/jack/cgwatch
+Homepage: https://github.com/jeroen404/cgwatch
 
 Package: cgwatch
 Architecture: all

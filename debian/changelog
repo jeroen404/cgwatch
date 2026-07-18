@@ -1,3 +1,13 @@
+cgwatch (0.3.4-1) UNRELEASED; urgency=medium
+
+  * Packaging: the release workflow now also publishes an (unsigned) flat apt
+    repository to the gh-pages branch, so the package can be installed and
+    upgraded via apt:
+      deb [trusted=yes] https://jeroen404.github.io/cgwatch ./
+  * Fix the Homepage field (was a stale github.com/jack/... URL).
+
+ -- Jeroen <jeroen@404.eu>  Sat, 18 Jul 2026 18:25:25 +0200
+
 cgwatch (0.3.3-1) UNRELEASED; urgency=medium
 
   * Plasma widget: stop the "Add service" candidate list from resetting its
