@@ -1,3 +1,21 @@
+cgwatch (0.4.0-1) UNRELEASED; urgency=medium
+
+  * Memory pressure % now excludes reclaimable page cache. Previously the
+    figure was memory.current / memory.max, which counts the kernel's file
+    cache -- so cache-heavy apps (media players, cp/rsync, browsers) sat near
+    their limit and tripped the daemon's warning/critical notifications
+    despite zero real memory pressure (a cache-full cgroup is not at OOM
+    risk; the kernel reclaims cache first). It is now
+    (memory.current - file cache) / memory.max, across the daemon, TUI and
+    widget; the displayed usage figure is the real (non-cache) number, with
+    total and cache shown in the widget tooltip.
+  * NOTE: the 80/90 warning/critical defaults are unchanged but now mean
+    something -- real headroom running low, rather than cache filling up.
+    They will fire far less often. If you had raised your thresholds to
+    silence the old cache false-alarms, reset them to the defaults.
+
+ -- Jeroen <jeroen@404.eu>  Sun, 19 Jul 2026 00:12:53 +0200
+
 cgwatch (0.3.4-1) UNRELEASED; urgency=medium
 
   * Packaging: the release workflow now also publishes an (unsigned) flat apt

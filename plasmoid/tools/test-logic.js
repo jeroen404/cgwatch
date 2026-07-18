@@ -300,8 +300,9 @@ const CFG = { helperCommand: "cgwatch-cli" };
 // ---- computeRows: no-undefined/no-null invariant, sorting, sentinels ----
 const ROW_FIELDS = [
     "name", "unit", "short_name", "description", "memory_current", "memory_max",
-    "memory_percent", "cpu_quota_percent", "usage_usec", "nr_periods", "nr_throttled",
-    "throttled_usec", "cpu_percent", "throttled_delta", "edit_prefill_memory", "edit_prefill_cpu",
+    "memory_percent", "memory_effective", "memory_cache", "cpu_quota_percent", "usage_usec",
+    "nr_periods", "nr_throttled", "throttled_usec", "cpu_percent", "throttled_delta",
+    "edit_prefill_memory", "edit_prefill_cpu",
 ];
 function assertRowsWellFormed(rows, label) {
     for (const row of rows) {
@@ -333,6 +334,32 @@ function assertRowsWellFormed(rows, label) {
     ok(dolphin && dolphin.cpu_quota_percent === -1, "computeRows: null cpu_quota_percent -> -1 sentinel");
     const syncthing = calmRows.find((r) => r.name === "syncthing.service");
     ok(syncthing && syncthing.cpu_quota_percent === 50, "computeRows: real cpu_quota_percent passed through");
+
+    // memory_effective / memory_cache (page-cache exclusion): passed through
+    // verbatim from the dump via numOr, defaulting to 0 when absent --
+    // warning.json's discord entry is the deliberately cache-heavy (VLC-style)
+    // fixture: large memory_cache, memory_effective far below memory_current.
+    const warningDump = fixture("warning.json");
+    const { rows: warningRows } = L.computeRows(warningDump, null, {});
+    const discord = warningRows.find((r) => r.short_name === "discord");
+    const discordCg = warningDump.cgroups.find((c) => c.short_name === "discord");
+    ok(discord && discordCg, "computeRows: warning.json has a discord row/cgroup to compare");
+    eq(discord.memory_effective, discordCg.memory_effective,
+       "computeRows: memory_effective passed through verbatim from the dump");
+    eq(discord.memory_cache, discordCg.memory_cache,
+       "computeRows: memory_cache passed through verbatim from the dump");
+    ok(discord.memory_effective < discord.memory_cache,
+       "computeRows: cache-heavy fixture row has memory_effective well below memory_cache (VLC-style)");
+    ok(discord.memory_effective < discordCg.memory_current,
+       "computeRows: cache-heavy fixture row has memory_effective well below memory_current");
+
+    // absent memory_effective/memory_cache (e.g. an older helper, or the
+    // synthetic tie-break dump below) -> numOr default of 0, never
+    // undefined/null (ListModel role-type safety).
+    const noNewFieldsDump = { cgroups: [{ name: "app-old-helper.service", memory_percent: 10, cpu_stat: {} }] };
+    const { rows: noNewFieldsRows } = L.computeRows(noNewFieldsDump, null, {});
+    eq(noNewFieldsRows[0].memory_effective, 0, "computeRows: memory_effective defaults to 0 when absent from the dump");
+    eq(noNewFieldsRows[0].memory_cache, 0, "computeRows: memory_cache defaults to 0 when absent from the dump");
 
     // J4: secondary tie-break by name when memory_percent is equal --
     // otherwise rows at e.g. exactly 0% reorder from poll to poll purely

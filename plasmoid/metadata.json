@@ -14,7 +14,7 @@
         "Id": "eu.404.cgwatch",
         "License": "GPL-3.0-or-later",
         "Name": "CGWatch",
-        "Version": "0.3.4"
+        "Version": "0.4.0"
     },
     "X-Plasma-API-Minimum-Version": "6.0",
     "X-Plasma-Provides": []

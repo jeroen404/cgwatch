@@ -69,9 +69,23 @@ class CGroup:
                 return usage
         except FileNotFoundError:
             return "0"
+    def get_memory_cache(self):
+        stat_file = os.path.join(self.get_sysfs_path(), "memory.stat")
+        try:
+            with open(stat_file, "r") as f:
+                lines = f.readlines()
+                for line in lines:
+                    key, value = line.strip().split()
+                    if key == "file":
+                        return int(value)
+                return 0
+        except FileNotFoundError:
+            return 0
+    def get_effective_memory_usage(self):
+        return max(0, int(self.get_current_memory_usage()) - self.get_memory_cache())
     def get_percent_memory_usage(self):
         limit = self.get_memory_limit()
-        usage = self.get_current_memory_usage()
+        usage = self.get_effective_memory_usage()
         if limit == "max" or int(limit) == 0:
             return 0.0
         return (int(usage) / int(limit)) * 100

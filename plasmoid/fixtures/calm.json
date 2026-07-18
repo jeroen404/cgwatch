@@ -11,7 +11,9 @@
       "description": "Syncthing - Open Source Continuous File Synchronization",
       "memory_current": 327491256,
       "memory_max": 1073741824,
-      "memory_percent": 30.5,
+      "memory_percent": 29.1,
+      "memory_effective": 312491256,
+      "memory_cache": 15000000,
       "cpu_quota_percent": 50.0,
       "cpu_stat": {
         "usage_usec": 45678901,
@@ -31,7 +33,9 @@
       "description": "Dolphin",
       "memory_current": 64424509,
       "memory_max": 536870912,
-      "memory_percent": 12.0,
+      "memory_percent": 11.4,
+      "memory_effective": 61424509,
+      "memory_cache": 3000000,
       "cpu_quota_percent": null,
       "cpu_stat": {
         "usage_usec": 15678234,
@@ -51,7 +55,9 @@
       "description": "GNOME Terminal Server",
       "memory_current": 13421773,
       "memory_max": 268435456,
-      "memory_percent": 5.0,
+      "memory_percent": 4.8,
+      "memory_effective": 12921773,
+      "memory_cache": 500000,
       "cpu_quota_percent": null,
       "cpu_stat": {
         "usage_usec": 3456789,

@@ -11,7 +11,9 @@
       "description": "Firefox Web Browser (ESR)",
       "memory_current": 1181116006,
       "memory_max": 2147483648,
-      "memory_percent": 55.0,
+      "memory_percent": 52.7,
+      "memory_effective": 1131116006,
+      "memory_cache": 50000000,
       "cpu_quota_percent": 200.0,
       "cpu_stat": {
         "usage_usec": 812345678,
@@ -31,7 +33,9 @@
       "description": "Slack Desktop Client",
       "memory_current": 1417339208,
       "memory_max": 1610612736,
-      "memory_percent": 88.0,
+      "memory_percent": 86.8,
+      "memory_effective": 1397339208,
+      "memory_cache": 20000000,
       "cpu_quota_percent": 150.0,
       "cpu_stat": {
         "usage_usec": 298765432,
@@ -51,7 +55,9 @@
       "description": "Discord",
       "memory_current": 1717986918,
       "memory_max": 2147483648,
-      "memory_percent": 80.0,
+      "memory_percent": 14.8,
+      "memory_effective": 317986918,
+      "memory_cache": 1400000000,
       "cpu_quota_percent": 100.0,
       "cpu_stat": {
         "usage_usec": 356789012,
@@ -71,7 +77,9 @@
       "description": "Visual Studio Code",
       "memory_current": 858993459,
       "memory_max": 4294967296,
-      "memory_percent": 20.0,
+      "memory_percent": 19.0,
+      "memory_effective": 813993459,
+      "memory_cache": 45000000,
       "cpu_quota_percent": null,
       "cpu_stat": {
         "usage_usec": 120456789,

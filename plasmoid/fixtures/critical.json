@@ -11,7 +11,9 @@
       "description": "Steam",
       "memory_current": 8160437862,
       "memory_max": 8589934592,
-      "memory_percent": 95.0,
+      "memory_percent": 94.1,
+      "memory_effective": 8080437862,
+      "memory_cache": 80000000,
       "cpu_quota_percent": 300.0,
       "cpu_stat": {
         "usage_usec": 1523456789,
@@ -31,7 +33,9 @@
       "description": "Chromium Web Browser",
       "memory_current": 1932735283,
       "memory_max": 3221225472,
-      "memory_percent": 60.0,
+      "memory_percent": 57.8,
+      "memory_effective": 1862735283,
+      "memory_cache": 70000000,
       "cpu_quota_percent": null,
       "cpu_stat": {
         "usage_usec": 634512789,
@@ -51,7 +55,9 @@
       "description": "Slack Desktop Client",
       "memory_current": 1449551462,
       "memory_max": 1610612736,
-      "memory_percent": 90.0,
+      "memory_percent": 89.1,
+      "memory_effective": 1434551462,
+      "memory_cache": 15000000,
       "cpu_quota_percent": 150.0,
       "cpu_stat": {
         "usage_usec": 298765432,
@@ -71,7 +77,9 @@
       "description": "Dolphin",
       "memory_current": 161061274,
       "memory_max": 536870912,
-      "memory_percent": 30.0,
+      "memory_percent": 28.5,
+      "memory_effective": 153061274,
+      "memory_cache": 8000000,
       "cpu_quota_percent": null,
       "cpu_stat": {
         "usage_usec": 15678234,

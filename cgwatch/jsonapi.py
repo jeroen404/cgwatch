@@ -66,6 +66,8 @@ def _cgroup_entry(cg) -> dict:
         "short_name": cg.get_short_name(),
         "description": service.get_description(cg.name),
         "memory_current": int(cg.get_current_memory_usage()),
+        "memory_effective": cg.get_effective_memory_usage(),
+        "memory_cache": cg.get_memory_cache(),
         "memory_max": memory_max,
         "memory_percent": cg.get_percent_memory_usage(),
         "cpu_quota_percent": cpu_quota_percent,

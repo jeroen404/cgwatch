@@ -11,7 +11,9 @@
       "description": "Firefox Web Browser (ESR)",
       "memory_current": 1288490189,
       "memory_max": 2147483648,
-      "memory_percent": 60.0,
+      "memory_percent": 57.4,
+      "memory_effective": 1233490189,
+      "memory_cache": 55000000,
       "cpu_quota_percent": 200.0,
       "cpu_stat": {
         "usage_usec": @USAGE@,
@@ -31,7 +33,9 @@
       "description": "Syncthing - Open Source Continuous File Synchronization",
       "memory_current": 268435456,
       "memory_max": 1073741824,
-      "memory_percent": 25.0,
+      "memory_percent": 23.8,
+      "memory_effective": 255435456,
+      "memory_cache": 13000000,
       "cpu_quota_percent": 50.0,
       "cpu_stat": {
         "usage_usec": 45678901,
@@ -51,7 +55,9 @@
       "description": "Slack Desktop Client",
       "memory_current": 1320702444,
       "memory_max": 1610612736,
-      "memory_percent": 82.0,
+      "memory_percent": 81.0,
+      "memory_effective": 1304702444,
+      "memory_cache": 16000000,
       "cpu_quota_percent": 150.0,
       "cpu_stat": {
         "usage_usec": 298765432,

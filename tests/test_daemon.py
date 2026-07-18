@@ -34,6 +34,13 @@ class FakeCGroup:
     def get_current_memory_usage(self):
         return self._current
 
+    def get_effective_memory_usage(self):
+        # No page-cache concept modeled here -- these tests only exercise
+        # _maybe_notify()/main()'s threshold/hysteresis logic, not
+        # cache subtraction (that's cgwatch.cgroup's job, covered in
+        # tests/test_cgroup.py). Effective == current for this fake.
+        return int(self._current)
+
     def get_memory_limit(self):
         return self._limit
 
@@ -133,7 +140,7 @@ class MaybeNotifyDirectTests(unittest.TestCase):
         self.assertEqual(title, "Memory limit critical")
         expected_body = (
             f"firefox is using 92.5% of its memory limit "
-            f"({humanize.naturalsize(self.cg.get_current_memory_usage())} / "
+            f"({humanize.naturalsize(self.cg.get_effective_memory_usage())} / "
             f"{humanize.naturalsize(self.cg.get_memory_limit())})"
         )
         self.assertEqual(body, expected_body)

@@ -94,7 +94,7 @@ class MemoryUsageHumanized(ReactiveMetricLabel):
 
     def _fetch(self, cgroup: CGroup):
         if self.mem_display_type == "usage":
-            return int(cgroup.get_current_memory_usage())
+            return int(cgroup.get_effective_memory_usage())
         elif self.mem_display_type == "limit":
             limit = cgroup.get_memory_limit()
             return int(limit) if limit != "max" else 0

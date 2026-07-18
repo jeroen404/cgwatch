@@ -237,6 +237,8 @@ function computeRows(dumpData, prevSamples, cfg) {
             memory_current: numOr(cg.memory_current, 0),
             memory_max: (cg.memory_max === null || cg.memory_max === undefined) ? -1 : numOr(cg.memory_max, -1),
             memory_percent: numOr(cg.memory_percent, 0),
+            memory_effective: numOr(cg.memory_effective, 0),
+            memory_cache: numOr(cg.memory_cache, 0),
             cpu_quota_percent: (cg.cpu_quota_percent === null || cg.cpu_quota_percent === undefined) ? -1 : numOr(cg.cpu_quota_percent, -1),
             usage_usec: cur.usage_usec,
             nr_periods: cur.nr_periods,

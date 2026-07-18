@@ -24,8 +24,9 @@ import cgwatch.jsonapi as jsonapi
 
 
 def _write_cgroup(root: Path, name: str, *, memory_max="max", memory_current="0",
-                   cpu_max="max 100000", cpu_stat=None) -> None:
-    """Create a fake cgroup directory (memory.max/current, cpu.max/stat)."""
+                   cpu_max="max 100000", cpu_stat=None, memory_stat=None) -> None:
+    """Create a fake cgroup directory (memory.max/current, cpu.max/stat,
+    optionally memory.stat for page-cache accounting)."""
     d = root / "user.slice" / name
     d.mkdir(parents=True, exist_ok=True)
     (d / "memory.max").write_text(memory_max)
@@ -40,6 +41,9 @@ def _write_cgroup(root: Path, name: str, *, memory_max="max", memory_current="0"
         stat.update(cpu_stat)
     lines = "\n".join(f"{k} {v}" for k, v in stat.items()) + "\n"
     (d / "cpu.stat").write_text(lines)
+    if memory_stat is not None:
+        mem_lines = "\n".join(f"{k} {v}" for k, v in memory_stat.items()) + "\n"
+        (d / "memory.stat").write_text(mem_lines)
 
 
 def _run_cli(argv):
@@ -65,7 +69,10 @@ class DumpTests(unittest.TestCase):
         self.root = Path(self._tmp.name)
 
         # Memory-limited: the only cgroup that should show up in
-        # dump()["cgroups"].
+        # dump()["cgroups"]. Cache-heavy on purpose (800M of the 1G
+        # current is reclaimable page cache) so memory_percent/
+        # memory_effective exercise the cache-subtraction, not just the
+        # raw current/max ratio.
         _write_cgroup(
             self.root, "app-firefox@abc.service",
             memory_max="2147483648", memory_current="1073741824",
@@ -74,6 +81,7 @@ class DumpTests(unittest.TestCase):
                 "usage_usec": "100000000", "nr_periods": "500",
                 "nr_throttled": "10", "throttled_usec": "200000",
             },
+            memory_stat={"anon": "273741824", "file": "800000000", "shmem": "0"},
         )
         # Unlimited, running -> a candidate.
         _write_cgroup(
@@ -126,8 +134,18 @@ class DumpTests(unittest.TestCase):
         self.assertEqual(entry["short_name"], "firefox")
         self.assertEqual(entry["description"], "Desc(app-firefox@abc.service)")
         self.assertEqual(entry["memory_current"], 1073741824)
+        self.assertEqual(entry["memory_cache"], 800000000)
+        self.assertEqual(entry["memory_effective"], 1073741824 - 800000000)
+        self.assertIsInstance(entry["memory_effective"], int)
+        self.assertIsInstance(entry["memory_cache"], int)
         self.assertEqual(entry["memory_max"], 2147483648)
-        self.assertAlmostEqual(entry["memory_percent"], 50.0)
+        # memory_percent is now effective (current - cache) / max * 100,
+        # not the raw 50% current/max would give.
+        self.assertAlmostEqual(
+            entry["memory_percent"],
+            ((1073741824 - 800000000) / 2147483648) * 100,
+        )
+        self.assertLess(entry["memory_percent"], 50.0)
         self.assertIsNone(entry["cpu_quota_percent"])
         self.assertEqual(entry["cpu_stat"], {
             "usage_usec": 100000000,

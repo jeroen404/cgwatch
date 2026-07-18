@@ -164,12 +164,18 @@ Item {
                 PlasmaComponents.Label { // line 2 (dim): used / limit · CPU: X% of Y%
                     Layout.fillWidth: true
                     elide: Text.ElideRight
-                    text: Logic.humanBytes(model.memory_current) + " / "
+                    text: Logic.humanBytes(model.memory_effective) + " / "
                           + (model.memory_max < 0 ? "max" : Logic.humanBytes(model.memory_max))
                           + " · CPU: " + (model.cpu_percent < 0 ? "—" : model.cpu_percent.toFixed(0) + "%")
                           + " of " + (model.cpu_quota_percent < 0 ? "max" : model.cpu_quota_percent.toFixed(0) + "%")
                     font.pixelSize: Kirigami.Theme.smallFont.pixelSize
                     color: Kirigami.Theme.disabledTextColor
+
+                    HoverHandler { id: memoryHover }
+                    PlasmaComponents.ToolTip.text: Logic.humanBytes(model.memory_current) + " total ("
+                                                   + Logic.humanBytes(model.memory_cache) + " cache)"
+                    PlasmaComponents.ToolTip.visible: memoryHover.hovered
+                    PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
                 }
 
                 Rectangle { // thin horizontal memory progress bar

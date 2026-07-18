@@ -72,7 +72,7 @@ def _maybe_notify(cg, mem_percent, last_notified, reset_hysteresis, title, urgen
         last_notified[cg.name] = mem_percent
         send_notification(
             title,
-            f"{cg.get_short_name()} is using {mem_percent:.1f}% of its memory limit ({humanize.naturalsize(cg.get_current_memory_usage())} / {humanize.naturalsize(cg.get_memory_limit())})",
+            f"{cg.get_short_name()} is using {mem_percent:.1f}% of its memory limit ({humanize.naturalsize(cg.get_effective_memory_usage())} / {humanize.naturalsize(cg.get_memory_limit())})",
             urgency=urgency,
             app_name=app_name,
             icon=icon,

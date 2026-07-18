@@ -23,7 +23,7 @@ _real_listdir = os.listdir
 
 
 def _write_cgroup(root: Path, rel_path: str, *, memory_max=None, memory_current=None,
-                   cpu_max=None, cpu_stat=None) -> Path:
+                   cpu_max=None, cpu_stat=None, memory_stat=None) -> Path:
     """Create a fake cgroup directory at root/rel_path.
 
     Only writes the files whose value is given (None means "leave that
@@ -42,6 +42,9 @@ def _write_cgroup(root: Path, rel_path: str, *, memory_max=None, memory_current=
     if cpu_stat is not None:
         lines = "\n".join(f"{k} {v}" for k, v in cpu_stat.items()) + "\n"
         (d / "cpu.stat").write_text(lines)
+    if memory_stat is not None:
+        lines = "\n".join(f"{k} {v}" for k, v in memory_stat.items()) + "\n"
+        (d / "memory.stat").write_text(lines)
     return d
 
 
@@ -83,6 +86,97 @@ class MemoryGettersTests(unittest.TestCase):
     def test_percent_usage_zero_when_limit_is_max(self):
         _write_cgroup(self.root, "user.slice/app-e.service", memory_max="max", memory_current="500")
         cg = cgroup.CGroup("app-e.service", parent=cgroup.CGroup("user.slice"))
+        self.assertEqual(cg.get_percent_memory_usage(), 0.0)
+
+
+class MemoryCacheTests(unittest.TestCase):
+    """get_memory_cache / get_effective_memory_usage / the now-cache-free
+    get_percent_memory_usage."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.root = Path(self._tmp.name)
+        self._patch = mock.patch.object(cgroup, "SYSFS_CGROUP_PATH", str(self.root))
+        self._patch.start()
+        self.addCleanup(self._patch.stop)
+
+    def test_get_memory_cache_parses_file_line(self):
+        _write_cgroup(
+            self.root, "user.slice/app-a.service",
+            memory_max="max", memory_current="0",
+            memory_stat={"anon": "361000000", "file": "6200000000", "shmem": "1000000"},
+        )
+        cg = cgroup.CGroup("app-a.service", parent=cgroup.CGroup("user.slice"))
+        self.assertEqual(cg.get_memory_cache(), 6200000000)
+
+    def test_get_memory_cache_zero_when_memory_stat_missing(self):
+        _write_cgroup(self.root, "user.slice/app-b.service", memory_max="max", memory_current="0")
+        cg = cgroup.CGroup("app-b.service", parent=cgroup.CGroup("user.slice"))
+        self.assertEqual(cg.get_memory_cache(), 0)
+
+    def test_get_memory_cache_zero_when_file_line_missing(self):
+        _write_cgroup(
+            self.root, "user.slice/app-c.service",
+            memory_max="max", memory_current="0",
+            memory_stat={"anon": "361000000", "shmem": "1000000"},
+        )
+        cg = cgroup.CGroup("app-c.service", parent=cgroup.CGroup("user.slice"))
+        self.assertEqual(cg.get_memory_cache(), 0)
+
+    def test_get_effective_memory_usage_subtracts_cache(self):
+        _write_cgroup(
+            self.root, "user.slice/app-d.service",
+            memory_max="max", memory_current="7000000000",
+            memory_stat={"anon": "361000000", "file": "6200000000", "shmem": "1000000"},
+        )
+        cg = cgroup.CGroup("app-d.service", parent=cgroup.CGroup("user.slice"))
+        self.assertEqual(cg.get_effective_memory_usage(), 7000000000 - 6200000000)
+
+    def test_get_effective_memory_usage_clamps_to_zero_when_cache_exceeds_current(self):
+        # Can happen transiently on a sysfs race between the two reads.
+        _write_cgroup(
+            self.root, "user.slice/app-e.service",
+            memory_max="max", memory_current="100",
+            memory_stat={"file": "500"},
+        )
+        cg = cgroup.CGroup("app-e.service", parent=cgroup.CGroup("user.slice"))
+        self.assertEqual(cg.get_effective_memory_usage(), 0)
+
+    def test_percent_memory_usage_is_cache_free(self):
+        # VLC-shaped: 6.6G current, 6.2G of which is page cache -> effective
+        # ~0.4G, a low percent against a 7G limit despite current sitting
+        # near the limit.
+        current = 6_600_000_000
+        cache = 6_200_000_000
+        limit = 7_000_000_000
+        _write_cgroup(
+            self.root, "user.slice/app-vlc.service",
+            memory_max=str(limit), memory_current=str(current),
+            memory_stat={"anon": "361000000", "file": str(cache), "shmem": "2000000"},
+        )
+        cg = cgroup.CGroup("app-vlc.service", parent=cgroup.CGroup("user.slice"))
+        effective = current - cache
+        self.assertEqual(cg.get_effective_memory_usage(), effective)
+        self.assertAlmostEqual(cg.get_percent_memory_usage(), (effective / limit) * 100)
+        self.assertLess(cg.get_percent_memory_usage(), 10.0)
+
+    def test_percent_memory_usage_still_zero_when_limit_is_max(self):
+        _write_cgroup(
+            self.root, "user.slice/app-f.service",
+            memory_max="max", memory_current="1000",
+            memory_stat={"file": "200"},
+        )
+        cg = cgroup.CGroup("app-f.service", parent=cgroup.CGroup("user.slice"))
+        self.assertEqual(cg.get_percent_memory_usage(), 0.0)
+
+    def test_percent_memory_usage_still_zero_when_limit_is_zero(self):
+        _write_cgroup(
+            self.root, "user.slice/app-g.service",
+            memory_max="0", memory_current="1000",
+            memory_stat={"file": "200"},
+        )
+        cg = cgroup.CGroup("app-g.service", parent=cgroup.CGroup("user.slice"))
         self.assertEqual(cg.get_percent_memory_usage(), 0.0)
 
 
